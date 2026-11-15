@@ -158,14 +158,14 @@
         <label class="chk"><input id="ovBorder" type="checkbox" checked> Mark first epoch</label>
         <label class="chk" title="Boxes mark automatic detections on the difference images: movers (dipoles), variables, and sources seen in one visit only"><input id="ovCand" type="checkbox" checked> Auto-detect candidates</label>
       </div>
-      <div class="group share">
+      <div class="group share" hidden>   <!-- removed from the page by the team (save / copy link / embed) -->
         <button id="saveCand" title="Save the clicked position (or the target) to your candidate list">★ Save as candidate</button>
         <button id="copyLink" title="Link to exactly this view">Copy link</button>
         <button id="copyEmbed" title="HTML snippet that shows this viewer inside another web page">Copy embed code</button>
         <input id="shareBox" type="text" readonly hidden aria-label="Text to copy">
       </div>
     </div>
-    <div class="links" id="links"></div>
+    <div class="links" id="links" hidden></div>   <!-- external archive links removed by the team -->
     <a id="openFull" class="open-full" target="_blank" rel="noopener" href="./">Open in SPHEREx Time Machine ↗</a>
   </section>
 
@@ -205,7 +205,7 @@
       <div id="lcPlot" class="plot small-plot"></div>
       <p class="muted small">Median flux per visit and detector, normalised per detector. Variable stars change; moving objects stay flat. If no source is detected at the position, the raw fluxes (mJy, around zero) are shown instead. Click any star in the image to see its own light curve.</p>
     </section>
-    <section class="card">
+    <section class="card" hidden>   <!-- candidate list: hidden together with "Save as candidate" -->
       <div class="card-head">
         <h3>Your candidates <span id="savedCount" class="muted"></span></h3>
         <button id="savedCsv" class="ghost small" disabled>Download CSV</button>
@@ -222,7 +222,7 @@
       <ul class="small tips">
         <li><b>Blink:</b> stars stay put; a dot that hops between epochs is moving.</li>
         <li><b>Difference:</b> static stars vanish; a mover leaves a <i>dipole</i> (dark/bright pair).</li>
-        <li><b>Boxes:</b> automatic detections – pink <i>mover?</i> (dipole), blue <i>variable?</i>, yellow <i>one visit only</i> (asteroid, transient or artifact: check the asteroid overlay). They are hints, not discoveries – always look yourself. Click a source and press “Save as candidate” to keep it (yellow ★ square).</li>
+        <li><b>Boxes:</b> automatic detections – pink <i>mover?</i> (dipole), blue <i>variable?</i>, yellow <i>one visit only</i> (asteroid, transient or artifact: check the asteroid overlay). They are hints, not discoveries – always look yourself.</li>
         <li><b>D6−D4:</b> cold brown dwarfs are bright at 4.5 µm but dark in the 3.3 µm methane band.</li>
         <li><b>No Gaia match?</b> A moving source invisible to Gaia is too cold for optical light – exactly how volunteers find brown dwarfs.</li>
         <li><b>Beware artifacts:</b> ghosts and cosmic rays appear in one frame only, or move with the detector instead of the sky.</li>
