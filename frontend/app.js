@@ -860,7 +860,9 @@ function showObjectCard(obj) {
   if (!obj || obj.matched === false) { closeObjectCard(); return; }
   openObjectCard(); S.selectedObject = obj;
   $("objectCardDetails").replaceChildren(); $("objectCardLinks").replaceChildren(); $("objectCardSpherexMeta").replaceChildren();
-  $("objectCardStatus").textContent = obj.source ? `Catalogue match · ${obj.source}` : "Catalogue match";
+  // no "Catalogue match" label: only the source of the information, when it is an external catalogue
+  const src = obj.source && obj.source !== "Current target" ? obj.source : "";
+  $("objectCardStatus").textContent = src; $("objectCardStatus").hidden = !src;
   $("objectCardName").textContent = obj.name || "Catalogued object";
   $("objectCardType").textContent = obj.type || "Catalogued object";
   $("objectCardDescription").textContent = obj.description || fallbackDescription(obj);
