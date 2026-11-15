@@ -44,7 +44,7 @@ def _remember(key: str, cutouts: list[sx.Cutout]):
     with _LRU_LOCK:
         _CUTOUT_LRU[key] = cutouts
         _CUTOUT_LRU.move_to_end(key)
-        while len(_CUTOUT_LRU) > 8:          # compact cutouts: ~10-15 MB per field
+        while len(_CUTOUT_LRU) > 4:          # compact cutouts: ~5-15 MB per field (512 MB server)
             _CUTOUT_LRU.popitem(last=False)
 
 

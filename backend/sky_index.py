@@ -41,6 +41,8 @@ def _load():
             z = np.load(IDX_DIR / "spherex_index.npz")
             maps = json.loads((IDX_DIR / "focal_plane.json").read_text())
             _idx = {k: z[k] for k in z.files}
+            for k in ("rel", "obs", "week"):          # ASCII names: 1 byte per character instead of 4 (-25 MB)
+                _idx[k] = _idx[k].astype("S")
             _idx["maps"] = {int(r): {int(g): np.array(m) for g, m in d.items()} for r, d in maps.items()}
     return _idx
 
@@ -89,8 +91,8 @@ def find(ra: float, dec: float) -> list[tuple[str, float, str]]:
                     vi = z["detver"][i, det - 1]
                     if vi < 0:
                         continue
-                    ver, obs = str(z["versions"][vi]), str(z["obs"][i])
-                    key = (f"{z['rel'][i]}/level2/{z['week'][i]}/{ver}/{det}/"
+                    ver, obs = str(z["versions"][vi]), z["obs"][i].decode()
+                    key = (f"{z['rel'][i].decode()}/level2/{z['week'][i].decode()}/{ver}/{det}/"
                            f"level2_{obs}D{det}_spx_{ver}.fits")
                     out.append((key, float(z["mjd"][i]), f"D{det}"))
     return sorted(out, key=lambda t: t[1])

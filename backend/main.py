@@ -39,7 +39,34 @@ FRONTEND = sx.ROOT / "frontend"
 
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
-EXECUTOR = ThreadPoolExecutor(max_workers=2)
+MAX_JOBS_KEPT = 40
+# One field at a time: the Render instance has 512 MB, and two jobs with full-size images in memory
+# at once pushed it over the limit (Render restarted the app, 502). A second request waits its turn.
+EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
+
+def _limit_malloc():
+    """glibc gives every thread its own memory arena (up to 8 x CPUs); with our download threads that
+    adds 100+ MB of unused heap. Two arenas are plenty. Linux only; elsewhere this does nothing."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL("libc.so.6")
+        libc.mallopt(-8, 2)            # M_ARENA_MAX = 2
+        return libc
+    except (OSError, AttributeError):
+        return None
+
+
+_LIBC = _limit_malloc()
+
+
+def _release_memory():
+    """Give freed memory back to the system after a job (glibc keeps it otherwise)."""
+    if _LIBC is not None:
+        try:
+            _LIBC.malloc_trim(0)
+        except AttributeError:
+            pass
 
 
 class FramesRequest(BaseModel):
@@ -86,6 +113,14 @@ def _run(job_id: str, params: dict, fn=None):
     except Exception as err:
         traceback.print_exc()
         _set(job_id, status="error", message=str(err))
+    finally:
+        with JOBS_LOCK:
+            JOBS[job_id].pop("partial", None)      # the finished result is on disk; drop the copy in memory
+            JOBS[job_id].pop("params", None)
+            done = [k for k, j in JOBS.items() if j.get("status") != "running"]
+            for k in done[:-MAX_JOBS_KEPT]:         # forget old finished jobs (dicts keep insertion order)
+                JOBS.pop(k, None)
+        _release_memory()
 
 
 @app.on_event("startup")
