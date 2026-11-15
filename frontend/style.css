@@ -54,14 +54,14 @@ h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
 .range-note[hidden] { display: none; }
 .fov select { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px; }
 .examples { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 13px; }
-.demos { display: flex; flex-wrap: wrap; gap: 6px; }
+.examples .demos { grid-column: auto; }
+.demos { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .demos button { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; }
 .demos button .k { color: var(--muted); margin-left: 4px; }
 
 .layout {
-  flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px; padding: 16px 20px; width: 100%; max-width: 1200px; margin: 0 auto;
-  align-content: start;
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: 16px; padding: 16px 20px;
 }
 /* grid items may shrink below their content width, so nothing pushes the page wider than the screen */
 .layout > * { min-width: 0; }
@@ -69,16 +69,7 @@ h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
 .card h3 { margin: 0 0 8px; font-size: 15px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; }
-.side { display: contents; }
-.layout > .viewer { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
-.side > section { min-width: 0; }
-.side > section:nth-child(1) { grid-column: 1; grid-row: 2; }
-.side > section:nth-child(2) { grid-column: 2; grid-row: 2; }
-.side > section:nth-child(3) { grid-column: 1 / -1; grid-row: 4; }
-.side > section:nth-child(4) { grid-column: 2; grid-row: 5; }
-.side > section:nth-child(5) { grid-column: 1; grid-row: 5; }
-.side:has(#warnCard[hidden]) > section:nth-child(5) { grid-column: 1 / -1; }
-.side > section[hidden] { display: none; }
+.side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 .viewer-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .viewer-head h2 { margin: 0; font-size: 18px; }
@@ -143,17 +134,15 @@ h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 12.5px; }
 .links a { padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
 
-.layout > .context { grid-column: 1 / -1; grid-row: 3; min-width: 0; }
-.layout > .context #aladin { height: 420px; }     /* wide map: a little taller than in the old side column */
-/* Keep Aladin's centered dialogs, including their close buttons, inside the map. */
-#aladin .aladin-box.aladin-anchor-middle { max-height: calc(100% - 16px); max-width: calc(100% - 16px); overflow: auto; }
+.layout > .context { grid-column: 1; }
+.layout > .side { grid-column: 2; grid-row: 1 / span 2; }
 #aladin { width: 100%; height: 360px; border-radius: 8px; overflow: hidden; margin-top: 8px; background: #05080d; }
 .pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .pick[hidden] { display: none; }
 .time-note { margin: 2px 0 6px; }
 #survey { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; margin-left: 6px; }
 .plot { width: 100%; height: 300px; }
-.small-plot { height: 300px; }   /* same height as the spectrum beside it */
+.small-plot { height: 220px; }
 .tips { padding-left: 18px; margin: 0; line-height: 1.5; color: var(--text); }
 .tips li { margin-bottom: 4px; }
 #warnings { padding-left: 18px; margin: 0; line-height: 1.5; }
@@ -186,17 +175,7 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
   .viewer-head { flex-direction: column; }
   .badges { justify-content: flex-start; }
   .dates input { width: 118px; }
-  .layout > .viewer, .layout > .context, .side > section { grid-column: 1; }
-  /* the desktop rules above use :nth-child (higher specificity): override them, or a hidden 2nd column appears */
-  .layout .side > section:nth-child(n) { grid-column: 1; }
-  .layout > .viewer { grid-row: 1; }
-  .side > section:nth-child(1) { grid-row: 2; }
-  .side > section:nth-child(2) { grid-row: 3; }
-  .layout > .context { grid-row: 4; }
-  .side > section:nth-child(3) { grid-row: 5; }
-  .side > section:nth-child(5) { grid-row: 6; }
-  .side > section:nth-child(4) { grid-row: 7; }
-  .side:has(#warnCard[hidden]) > section:nth-child(5) { grid-column: 1; }
+  .layout > .context, .layout > .side { grid-column: 1; grid-row: auto; }
   .topbar { grid-template-columns: 1fr; padding: 12px; }
   .search { flex-wrap: wrap; }
   .search input[type=text] { flex-basis: 100%; order: -1; }
