@@ -7,7 +7,11 @@
       "aliases": ["barnard", "barnards star", "barnard's star", "gj 699", "v2500 oph"],
       "ra": 269.45208, "dec": 4.69336, "pmra": -802.0, "pmdec": 10362.0, "ref_epoch": 2000.0,
       "kind": "high proper motion star",
-      "note": "Fastest-moving star on the sky (~10.4 arcsec/yr)."
+      "note": "Fastest-moving star on the sky (~10.4 arcsec/yr).",
+      "description": "Barnard's Star is a nearby, low-mass red dwarf about six light-years from the Sun. It is faint in visible light but comparatively bright in the infrared, making its motion especially useful for time-domain sky surveys.",
+      "interesting_fact": "Its proper motion is about 10.3 arcseconds per year, the largest known for a star.",
+      "story": "The star is named for American astronomer E. E. Barnard, who measured its unusually rapid motion in 1916 using photographic observations; it also appears on older Harvard plates.",
+      "sources": [{"label": "NASA Astrobiology", "url": "https://astrobiology.nasa.gov/news/barnards-star/"}]
     },
     {
       "id": "eps_ind_b",
@@ -15,7 +19,11 @@
       "aliases": ["eps ind b", "epsilon indi b", "eps indi b", "epsilon indi ba"],
       "ra": 331.04415, "dec": -56.78284, "pmra": 3982.0, "pmdec": -2467.0, "ref_epoch": 2000.0,
       "kind": "binary brown dwarf",
-      "note": "A pair of brown dwarfs (Ba/Bb) orbiting the star Epsilon Indi A."
+      "note": "A pair of brown dwarfs (Ba/Bb) orbiting the star Epsilon Indi A.",
+      "description": "Epsilon Indi B is a nearby pair of brown dwarfs, Ba and Bb, gravitationally bound to the star Epsilon Indi A. Brown dwarfs form like stars but are not massive enough to sustain ordinary hydrogen fusion, so they are studied most effectively in infrared light.",
+      "interesting_fact": "The two brown dwarfs are separated by less than one arcsecond, making the system a valuable benchmark for testing cool-atmosphere models.",
+      "story": "The companion was identified in digitised archival plates and 2MASS data, then confirmed as a brown dwarf with ESO's New Technology Telescope in 2003. Later observations resolved it into the Ba/Bb pair.",
+      "sources": [{"label": "ESO discovery release", "url": "https://www.eso.org/public/news/eso0303/"}, {"label": "ESO binary study", "url": "https://www.eso.org/sci/activities/vltsv/visirsv/sterzik.html"}]
     },
     {
       "id": "wise0855",
@@ -23,7 +31,11 @@
       "aliases": ["wise 0855", "wise0855", "wise j085510.83-071442.5", "wise 0855-0714"],
       "ra": 133.795129, "dec": -7.245147, "pmra": -8118.0, "pmdec": 673.0, "ref_epoch": 2010.5,
       "kind": "Y-type brown dwarf",
-      "note": "Coldest known brown dwarf; invisible in optical (no Gaia match). ~2 arcmin west of the challenge coordinates by 2025."
+      "note": "Coldest known brown dwarf; invisible in optical (no Gaia match). ~2 arcmin west of the challenge coordinates by 2025.",
+      "description": "WISE 0855-0714 is an extremely cold, planetary-mass Y-type brown dwarf only about 7.2 light-years away. Its weak thermal glow is detectable mainly at infrared wavelengths, which makes it a close analogue for studying cold giant-planet atmospheres.",
+      "interesting_fact": "Its temperature is roughly 250 K, and infrared spectra provide strong evidence for water or water-ice clouds outside our Solar System.",
+      "story": "Astronomer Kevin Luhman found the object through its rapid motion in NASA WISE images; NASA announced the nearby cold brown dwarf in 2014 after follow-up with Spitzer and Gemini South.",
+      "sources": [{"label": "NASA discovery release", "url": "https://www.nasa.gov/news-release/nasas-spitzer-and-wise-telescopes-find-close-cold-neighbor-of-sun/"}, {"label": "NASA water-cloud study", "url": "https://science.nasa.gov/universe/exoplanets/astronomers-find-water-clouds-in-cold-jupiter-like-object/"}]
     },
     {
       "id": "rw_aur",
@@ -31,7 +43,11 @@
       "aliases": ["rw aur", "rw aurigae"],
       "ra": 76.95653, "dec": 30.40144, "pmra": 7.0, "pmdec": -20.0, "ref_epoch": 2000.0,
       "kind": "variable star (young T Tauri binary)",
-      "note": "Irregular variable with deep dimming events."
+      "note": "Irregular variable with deep dimming events.",
+      "description": "RW Aurigae is a young T Tauri binary system in the Taurus-Auriga star-forming region. Its stars are still surrounded by gas and dust, and the primary star undergoes deep, irregular dimming events.",
+      "interesting_fact": "RW Aur A's dimming became more frequent and longer-lasting after 2011, offering a rare view of rapidly changing material around a young star.",
+      "story": "Astronomers have tracked the system's unusual variability since 1937. Modern X-ray and optical observations test whether the dimming comes from dusty material crossing our line of sight.",
+      "sources": [{"label": "NASA Chandra feature", "url": "https://www.nasa.gov/universe/chandra-may-have-first-evidence-of-a-young-star-devouring-a-planet/"}]
     },
     {
       "id": "r_dra",
@@ -39,7 +55,11 @@
       "aliases": ["r dra", "r draconis"],
       "ra": 248.16761, "dec": 66.75498, "pmra": -21.0, "pmdec": 6.0, "ref_epoch": 2000.0,
       "kind": "Mira variable",
-      "note": "Long-period variable (~246 d) in the SPHEREx north ecliptic pole deep field (thousands of images)."
+      "note": "Long-period variable (~246 d) in the SPHEREx north ecliptic pole deep field (thousands of images).",
+      "description": "R Draconis is a Mira-type pulsating red giant whose outer layers expand and contract, changing its brightness over a long cycle. Its position near the north ecliptic pole gives SPHEREx many repeated visits for studying infrared variability.",
+      "interesting_fact": "Its brightness cycle is about 245.6 days, so the repeated SPHEREx observations can sample a substantial part of a pulsation cycle.",
+      "story": null,
+      "sources": [{"label": "British Astronomical Association", "url": "https://britastro.org/vss/objects/obj-dra.html"}, {"label": "SPHEREx survey strategy", "url": "https://spherex.caltech.edu/page/survey"}]
     }
   ]
 }

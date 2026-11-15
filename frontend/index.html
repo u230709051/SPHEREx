@@ -261,6 +261,32 @@
     </section>
 </main>
 
+<aside id="objectCard" class="object-card" hidden role="dialog" aria-live="polite" aria-labelledby="objectCardName">
+  <button id="objectCardClose" class="object-card-close" type="button" aria-label="Close object information">×</button>
+  <div class="object-card-content">
+    <p id="objectCardStatus" class="object-card-status">Catalogue match</p>
+    <h3 id="objectCardName">Selected object</h3>
+    <p id="objectCardType" class="object-card-type"></p>
+    <p id="objectCardDescription" class="object-card-description"></p>
+    <div class="object-card-highlight" id="objectCardFactBox" hidden>
+      <span>Interesting fact</span><p id="objectCardFact"></p>
+    </div>
+    <div class="object-card-story" id="objectCardStoryBox" hidden>
+      <span>History or story</span><p id="objectCardStory"></p>
+    </div>
+    <details class="object-card-section">
+      <summary>Scientific properties</summary><dl id="objectCardDetails" class="object-card-details"></dl>
+    </details>
+    <details class="object-card-section">
+      <summary>SPHEREx connection</summary>
+      <p id="objectCardSpherex" class="object-card-section-text"></p>
+      <div id="objectCardSpherexMeta" class="object-card-meta"></div>
+    </details>
+    <p id="objectCardNote" class="muted small object-card-note"></p>
+    <div id="objectCardLinks" class="object-card-links"></div>
+  </div>
+</aside>
+
 <footer class="foot">
   <p>Data: NASA SPHEREx via NASA/IPAC Infrared Science Archive (IRSA). This tool makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. DOIs: 10.26131/IRSA678 (DR1), 10.26131/IRSA662 (QR3).</p>
   <p>This research has made use of the NASA/IPAC Infrared Science Archive, ESA Gaia DR3 (Gaia Collaboration 2023), the JPL Small-Body Identification API, CDS Sesame, and the Canadian Astronomy Data Centre (operated by the National Research Council of Canada with the support of the Canadian Space Agency). Built for the NASA Space Apps Challenge 2026. Not an official NASA product.</p>

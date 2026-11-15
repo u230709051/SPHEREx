@@ -105,7 +105,8 @@ def warm_demo_fields():
 
 @app.get("/api/targets")
 def targets():
-    return [{k: t[k] for k in ("id", "name", "ra", "dec", "pmra", "pmdec", "ref_epoch", "kind", "note")}
+    return [{k: t[k] for k in ("id", "name", "ra", "dec", "pmra", "pmdec", "ref_epoch", "kind", "note",
+                                "description", "interesting_fact", "story", "sources") if k in t}
             for t in cat.TARGETS]
 
 
@@ -119,6 +120,14 @@ def resolve(q: str = Query(..., min_length=1)):
     if r is None:
         raise HTTPException(404, f"No object called '{q}' was found in SIMBAD or CDS Sesame.")
     return r
+
+
+@app.get("/api/object-info")
+def object_info(ra: float = Query(..., ge=0.0, lt=360.0),
+                dec: float = Query(..., ge=-90.0, le=90.0),
+                radius_arcsec: float = Query(12.0, ge=1.0, le=60.0)):
+    """Identify the nearest catalogued object to a clicked sky position."""
+    return cat.object_info(ra, dec, radius_arcsec)
 
 
 @app.post("/api/frames")

@@ -211,6 +211,43 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
 .foot { padding: 12px 20px 22px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 .foot p { margin: 4px 0; max-width: 1100px; }
 
+/* Clicked-object information card: content-only panel, no image area. */
+.object-card {
+  position: fixed; top: 78px; right: 18px; z-index: 90;
+  width: min(350px, calc(100vw - 36px)); max-height: calc(100vh - 96px); overflow: auto;
+  padding: 0; background: rgba(10, 16, 31, .94); border: 1px solid rgba(91, 153, 255, .45);
+  border-radius: 16px; box-shadow: 0 24px 70px rgba(0, 0, 0, .58), 0 0 35px rgba(85, 93, 255, .12);
+  backdrop-filter: blur(18px); opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateX(calc(100% + 32px)); transition: transform .22s ease, opacity .18s ease, visibility 0s linear .22s;
+  scrollbar-width: thin; scrollbar-color: #33476d transparent;
+}
+.object-card.open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(0); transition-delay: 0s; }
+.object-card-close { position: absolute; top: 10px; right: 10px; width: 29px; height: 29px; padding: 0; z-index: 2; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255,255,255,.34); color: #fff; background: rgba(5, 10, 23, .72); font-size: 21px; line-height: 1; }
+.object-card-close:hover { border-color: #7fdcff; background: rgba(22, 35, 64, .94); }
+.object-card-content { padding: 15px; }
+.object-card-status { margin: 0 34px 4px 0; color: #7fdcff; text-transform: uppercase; letter-spacing: .1em; font-size: 10px; font-weight: 700; }
+.object-card h3 { margin: 0 32px 3px 0; font-size: 19px; line-height: 1.2; overflow-wrap: anywhere; }
+.object-card-type { margin: 0 0 10px; color: #b79cff; font-size: 12.5px; font-weight: 600; }
+.object-card-description { margin: 0 0 11px; color: #dce6f7; font-size: 12.5px; line-height: 1.5; }
+.object-card-highlight, .object-card-story { margin: 8px 0; padding: 9px 10px; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+.object-card-highlight { border: 1px solid rgba(80, 213, 255, .24); background: linear-gradient(135deg, rgba(44, 148, 207, .13), rgba(93, 63, 194, .1)); }
+.object-card-story { border-left: 2px solid rgba(183, 156, 255, .65); background: rgba(120, 89, 190, .08); }
+.object-card-highlight span, .object-card-story span { color: #7fdcff; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.object-card-story span { color: #c6adff; }
+.object-card-highlight p, .object-card-story p { margin: 3px 0 0; color: #d5def0; }
+.object-card-section { margin-top: 8px; border: 1px solid rgba(112, 139, 190, .22); border-radius: 10px; background: rgba(18, 29, 51, .48); }
+.object-card-section summary { padding: 9px 11px; cursor: pointer; color: #dce6f7; font-size: 12px; font-weight: 650; list-style-position: inside; }
+.object-card-section[open] summary { border-bottom: 1px solid rgba(112, 139, 190, .18); }
+.object-card-details { display: grid; grid-template-columns: minmax(90px, auto) 1fr; gap: 6px 12px; margin: 0; padding: 10px 11px; font-size: 11.5px; }
+.object-card-details dt { color: var(--muted); }
+.object-card-details dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.object-card-section-text { margin: 0; padding: 10px 11px 6px; color: #cdd8eb; font-size: 11.5px; line-height: 1.5; }
+.object-card-meta { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 11px 10px; }
+.object-card-meta span { padding: 3px 7px; border-radius: 999px; background: rgba(79,179,255,.1); border: 1px solid rgba(79,179,255,.24); color: #9bd7ff; font-size: 10px; }
+.object-card-note { margin: 10px 0 0; line-height: 1.45; }
+.object-card-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.object-card-links a { padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; font-size: 12px; }
+
 @media (max-width: 900px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 12px; }
   .badge { white-space: normal; }
@@ -251,3 +288,8 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
 .rep-kind h4 .muted { font-weight: 400; }
 .rep-kind p { margin: 4px 0; }
 .rep-kind .name-rule { color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 700px) {
+  .object-card { top: auto; right: 10px; bottom: 10px; left: 10px; width: auto; max-height: min(66vh, 520px); transform: translateY(calc(100% + 24px)); }
+  .object-card.open { transform: translateY(0); }
+}
