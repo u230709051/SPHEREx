@@ -48,35 +48,44 @@
       <use href="#opening-star" transform="translate(40 117) scale(.48)" fill="#bc9bff"/>
       <use href="#opening-star" transform="translate(192 48) scale(1.36)" fill="#f2eaff"/>
     </svg>
-    <div>
-      <h1>SkyBlink</h1>
-      <p class="tagline">Blink the infrared sky. Spot what moves. Read its spectrum.</p>
-    </div>
+    <h1>SkyBlink</h1>
   </div>
   <form id="searchForm" class="search" autocomplete="off">
-    <select id="qmode" aria-label="Search type" title="Sky position: a fixed patch of sky. Solar System object: follow an asteroid or comet through the SPHEREx images.">
+    <div class="seg" role="radiogroup" aria-label="Search type">
+      <button type="button" data-q="sky" class="on" role="radio" aria-checked="true" title="A fixed patch of sky: RA/Dec, or the name of a star or galaxy">Sky position</button>
+      <button type="button" data-q="sso" role="radio" aria-checked="false" title="Follow an asteroid or comet through the SPHEREx images">Moving object</button>
+    </div>
+    <select id="qmode" aria-hidden="true" tabindex="-1" hidden>
       <option value="sky">Sky position</option>
       <option value="sso">Solar System object</option>
     </select>
-    <input id="q" type="text" placeholder="Object name or RA Dec (e.g. Barnard's Star, 269.45 4.69, 08:55:10.8 -07:14:42)" aria-label="Object name or coordinates">
-    <label class="fov">FOV
-      <select id="fov" aria-label="Field of view">
+    <input id="q" type="text" placeholder="RA Dec or object name" aria-label="RA Dec or object name" aria-describedby="searchHint">
+    <label class="fov" title="Field of view: the size of the image, in arcminutes">Field
+      <select id="fov" aria-label="Field of view (arcminutes)">
         <option value="3">3′</option>
         <option value="5" selected>5′</option>
         <option value="8">8′</option>
         <option value="12">12′</option>
       </select>
     </label>
-    <label class="dates" title="Optional: only use visits between these dates (empty = all). SPHEREx observes from April 2025; ranges reaching back to 2010 or 2000 add the archival WISE and 2MASS frames.">Dates
-      <input id="dFrom" type="date" min="1997-01-01" aria-label="From date">
-      <span aria-hidden="true">–</span>
-      <input id="dTo" type="date" min="1997-01-01" aria-label="To date">
-    </label>
+    <details class="dates-pop" id="datesPop">
+      <summary id="datesSummary" title="Only use visits between two dates (optional)">Date range (optional)</summary>
+      <div class="dates-panel">
+        <label>From <input id="dFrom" type="date" min="1997-01-01" aria-label="From date"></label>
+        <label>To <input id="dTo" type="date" min="1997-01-01" aria-label="To date"></label>
+        <button type="button" id="clearDates" class="ghost small">Clear dates</button>
+        <p class="muted small">Leave empty to use every visit. SPHEREx observes since April 2025; a range reaching back to 2010 or 2000 also adds the archival WISE and 2MASS frames.</p>
+      </div>
+    </details>
     <button type="submit" class="primary">Load</button>
+    <p class="search-hint" id="searchHint">RA Dec in degrees (269.45 4.69) or hh:mm:ss ±dd:mm:ss (08:55:10.8 −07:14:42), or an object name</p>
   </form>
+  <button type="button" id="aboutBtn" class="ghost about-btn" aria-haspopup="dialog">About</button>
   <div class="examples">
-    <strong>Example targets</strong>
-    <div class="demos" id="demos" aria-label="Demo targets"></div>
+    <strong>Challenge test targets</strong>
+    <div class="demos" id="demos" aria-label="Challenge test targets"></div>
+    <span class="bonus-label">Bonus</span>
+    <div class="demos" id="bonusDemos" aria-label="Bonus target"></div>
   </div>
   <div class="demos" id="candidates" hidden></div>
 </header>
@@ -229,6 +238,17 @@
   <p>This research has made use of the NASA/IPAC Infrared Science Archive, ESA Gaia DR3 (Gaia Collaboration 2023), the JPL Small-Body Identification API, CDS Sesame, and the Canadian Astronomy Data Centre (operated by the National Research Council of Canada with the support of the Canadian Space Agency). Built for the NASA Space Apps Challenge 2026. Not an official NASA product.</p>
   <p class="muted">Keyboard: Space play/pause · ← → step · B blink · D difference · C colour · T track · I invert · + − zoom</p>
 </footer>
+<dialog id="aboutDlg" class="about" aria-labelledby="aboutTitle">
+  <h2 id="aboutTitle">About SkyBlink</h2>
+  <p>SkyBlink turns NASA SPHEREx infrared images of any position on the sky into a short movie, so that anything that moves or changes brightness between visits stands out – from nearby stars and cold brown dwarfs to asteroids and comets.</p>
+  <ol>
+    <li>Enter RA/Dec or a name, or pick a challenge test target.</li>
+    <li>Watch the visits blink; switch to <i>Difference</i> to see what changed.</li>
+    <li>Click any source to measure its spectrum (0.75–5 µm) and light curve.</li>
+  </ol>
+  <p class="muted small">Data: NASA SPHEREx Level-2 images (DR1, QR3) from NASA/IPAC IRSA, read from its public AWS copy; archival 2MASS and WISE; ESA Gaia DR3; JPL small-body data. Built for the NASA Space Apps Challenge 2026 (“Planet X and SPHEREx”). Not an official NASA product. AI coding assistants were used and are credited in the README.</p>
+  <form method="dialog"><button class="primary">Close</button></form>
+</dialog>
 </div>
 </body>
 </html>

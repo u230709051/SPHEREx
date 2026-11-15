@@ -135,12 +135,27 @@ function inRange(e) {   // a visit (or archival epoch) overlapping the chosen da
 }
 function rangeNote(text) { $("rangeNote").hidden = !text; $("rangeNote").textContent = text || ""; }
 function onRangeChange() {
+  updateDatesSummary();
   setHash();
   if (!S.result || isMoving()) return;
   const dr = S.result.date_range, r = dateRange();
   // the field was loaded for a narrower range: widen it by loading again
   if (dr && ((dr[0] && (!r.from || r.from < dr[0])) || (dr[1] && (!r.to || r.to > dr[1])))) return loadTarget(S.target, S.fov);
   rebuildDisplay(); plotSpectrum(); plotLightcurve(); showMotionBadge();
+}
+function setQmode(v) {   // "Sky position | Moving object" toggle drives the (hidden) select the code reads
+  $("qmode").value = v;
+  document.querySelectorAll(".seg button").forEach((b) => {
+    const on = b.dataset.q === v; b.classList.toggle("on", on); b.setAttribute("aria-checked", on);
+  });
+  $("q").placeholder = v === "sso" ? "Asteroid or comet name or number" : "RA Dec or object name";
+  $("searchHint").textContent = v === "sso" ? "e.g. Ceres, 2024 YR4, 3I – followed through every SPHEREx image of it"
+    : "RA Dec in degrees (269.45 4.69) or hh:mm:ss ±dd:mm:ss (08:55:10.8 −07:14:42), or an object name";
+}
+function updateDatesSummary() {
+  const r = dateRange(), el = $("datesSummary");
+  el.textContent = r.from || r.to ? `Dates: ${r.from || "…"} → ${r.to || "…"}` : "Date range (optional)";
+  el.classList.toggle("set", Boolean(r.from || r.to));
 }
 function useArchival() {
   return Boolean(S.arch && S.arch.epochs.length && $("ovArch").checked && (S.mode === "blink" || S.mode === "diff") && !isMoving());
@@ -1281,13 +1296,14 @@ async function initFromHash(targets) {
   // always follow the link (also cleared): a saved-candidate link opened later must not inherit old dates
   $("dFrom").value = /^\d{4}-\d{2}-\d{2}$/.test(h.get("from") || "") ? h.get("from") : "";
   $("dTo").value = /^\d{4}-\d{2}-\d{2}$/.test(h.get("to") || "") ? h.get("to") : "";
-  if (!h.get("object")) $("qmode").value = "sky";
+  updateDatesSummary();
+  if (!h.get("object")) setQmode("sky");
   if (h.get("speed")) $("speed").value = h.get("speed");
   if (h.get("invert") === "0") $("invert").checked = false;
   if (h.get("zoom")) $("zoom").value = h.get("zoom");
   document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("on", b.dataset.mode === S.mode));
   const fov = +$("fov").value;
-  if (h.get("object")) { $("qmode").value = "sso"; return loadObject(h.get("object"), fov); }
+  if (h.get("object")) { setQmode("sso"); return loadObject(h.get("object"), fov); }
   if (h.get("target")) {
     const t = targets.find((x) => x.id === h.get("target"));
     if (t) return loadTarget(t, fov);
@@ -1304,11 +1320,12 @@ async function main() {
   api("/api/index").then((i) => {   // how recent the searchable SPHEREx data is
     if (i.available) $("indexNote").textContent = ` Searchable SPHEREx images: up to ${mjdToDate(i.mjd_max)} (index updated ${i.built.slice(0, 10)}).`;
   }).catch(() => {});
-  $("demos").innerHTML = targets.map((t) => `<button data-id="${t.id}" title="${t.note}">${t.name}<span class="k">${t.kind}</span></button>`).join("")
-    + `<button class="sso" data-obj="3I" title="Interstellar comet 3I/ATLAS, imaged by SPHEREx in Aug and Dec 2025">3I/ATLAS<span class="k">interstellar comet</span></button>`;
-  $("demos").querySelector("[data-obj]").onclick = () => { $("qmode").value = "sso"; loadObject("3I", 4); };
+  // names only (less clutter); the kind and note show on hover
+  $("demos").innerHTML = targets.map((t) => `<button data-id="${t.id}" title="${t.kind}: ${t.note}">${t.name}</button>`).join("");
+  $("bonusDemos").innerHTML = `<button class="sso" data-obj="3I" title="Interstellar comet 3I/ATLAS, imaged by SPHEREx in Aug and Dec 2025">3I/ATLAS</button>`;
+  $("bonusDemos").querySelector("[data-obj]").onclick = () => { setQmode("sso"); loadObject("3I", 4); };
   $("demos").querySelectorAll("button[data-id]").forEach((b) => (b.onclick = () => {
-    $("qmode").value = "sky";
+    setQmode("sky");
     const t = targets.find((x) => x.id === b.dataset.id);
     if (t.id === "wise0855" || t.id === "eps_ind_b") { S.dets = new Set(["D5", "D6"]); }
     else if (t.id === "barnard") { S.dets = new Set(["D2", "D3"]); }
@@ -1334,10 +1351,14 @@ async function main() {
   renderSaved();
   window.addEventListener("hashchange", () => initFromHash(targets));   // opening a saved candidate link
   ["dFrom", "dTo"].forEach((id) => ($(id).onchange = onRangeChange));
+  $("clearDates").onclick = () => { $("dFrom").value = ""; $("dTo").value = ""; $("datesPop").open = false; onRangeChange(); };
+  document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => { setQmode(b.dataset.q); $("q").focus(); }));
+  document.addEventListener("click", (ev) => { if ($("datesPop").open && !$("datesPop").contains(ev.target)) $("datesPop").open = false; });
+  $("aboutBtn").onclick = () => $("aboutDlg").showModal();
   $("dTo").max = new Date().toISOString().slice(0, 10);
   $("pickLoad").onclick = () => {
     if (!S.pick) return;
-    $("qmode").value = "sky";
+    setQmode("sky");
     loadTarget({ name: null, ra: S.pick.ra, dec: S.pick.dec, pmra: 0, pmdec: 0, ref_epoch: 2000 }, Math.min(+$("fov").value || 5, 12));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

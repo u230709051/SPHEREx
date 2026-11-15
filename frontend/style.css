@@ -31,15 +31,48 @@ button.small, .small { font-size: 12.5px; }
 .muted { color: var(--muted); }
 
 .topbar {
-  display: grid; grid-template-columns: auto 1fr; gap: 10px 24px; align-items: center;
+  position: relative; display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; align-items: center;
   padding: 14px 20px; border-bottom: 1px solid var(--line); background: #0d1320;
 }
 .brand { display: flex; gap: 12px; align-items: center; }
 .logo { font-size: 30px; color: var(--accent-2); }
 h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
-.tagline { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 .search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
-.search input[type=text] { min-width: 220px; }
+#q { flex: 1 1 300px; min-width: 260px; }           /* the coordinate box is the most important control */
+.search-hint { font-size: 11.5px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: var(--panel); color: var(--muted); padding: 7px 11px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.dates-pop { position: relative; }
+.dates-pop > summary { list-style: none; cursor: pointer; font-size: 13px; color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; white-space: nowrap; }
+.dates-pop > summary::-webkit-details-marker { display: none; }
+.dates-pop > summary::after { content: " ▾"; }
+.dates-pop > summary.set { color: var(--accent-2); border-color: var(--accent-2); }
+.dates-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: 270px; display: grid; gap: 8px;
+  padding: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px #000a; }
+.dates-panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.dates-panel input { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; color-scheme: dark; }
+.dates-panel p { margin: 0; line-height: 1.45; }
+.about-btn { position: absolute; top: 12px; right: 16px; font-size: 13px; }
+.topbar .brand { padding-right: 70px; }
+/* search: row 1 = type + coordinates + Load, row 2 = field, dates, hint */
+.search { justify-content: flex-start; padding-right: 64px; }
+.seg { order: 1; }
+#q { order: 2; }
+.search > button[type=submit] { order: 3; flex: none; }
+.search::after { content: ""; order: 4; flex-basis: 100%; height: 0; }
+.fov { order: 5; }
+.dates-pop { order: 6; }
+.search-hint { order: 7; flex: 1 1 240px; text-align: right; margin: 0; }
+.bonus-label { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+dialog.about { max-width: 560px; width: calc(100% - 32px); background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 12px; padding: 20px 22px; line-height: 1.55; }
+dialog.about::backdrop { background: #000a; }
+dialog.about h2 { margin: 0 0 8px; font-size: 18px; }
+dialog.about ol { padding-left: 20px; }
+dialog.about form { text-align: right; margin: 6px 0 0; }
 .brand { min-width: 250px; }
 .search input[type=text] {
   flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line);
@@ -178,7 +211,9 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
   .layout > .context, .layout > .side { grid-column: 1; grid-row: auto; }
   .topbar { grid-template-columns: 1fr; padding: 12px; }
   .search { flex-wrap: wrap; }
-  .search input[type=text] { flex-basis: 100%; order: -1; }
+  .search input[type=text] { flex-basis: 100%; order: -1; min-width: 0; }
+  .search { padding-right: 0; }                /* About sits beside the logo above */
+  .search-hint { text-align: left; }
   .group input[type=range] { width: 90px; }
   .viewer-head { flex-direction: column; }      /* phones: badges below the title, wrapping inside */
   .badges { justify-content: flex-start; }
