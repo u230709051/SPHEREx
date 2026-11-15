@@ -230,3 +230,24 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
   .card-head { flex-wrap: wrap; }               /* the long sky-context menu must not widen the page */
   .card-head select { max-width: 100%; }
 }
+
+/* "where discoveries are reported" (team's discovery card): a full-width row of its own below the other
+   cards, four kinds in two columns; closed at first, the heading button opens it */
+.layout > #reportCard { grid-column: 1 / -1; min-width: 0; }
+.rep-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 28px; margin-top: 4px; }
+.rep-cols > div { min-width: 0; }
+@media (max-width: 900px) {
+  .layout > #reportCard { grid-column: 1; }
+  .rep-cols { grid-template-columns: minmax(0, 1fr); }
+}
+.rep-toggle {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%; text-align: left;
+  font-size: 15px; font-weight: 600; padding: 7px 12px;
+}
+.rep-toggle .chev { transition: transform .15s; color: var(--accent); }
+.rep-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.rep-kind { font-size: 13px; line-height: 1.5; }
+.rep-kind h4 { margin: 12px 0 4px; font-size: 13.5px; }
+.rep-kind h4 .muted { font-weight: 400; }
+.rep-kind p { margin: 4px 0; }
+.rep-kind .name-rule { color: var(--muted); font-size: 12.5px; }

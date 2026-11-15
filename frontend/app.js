@@ -1356,6 +1356,9 @@ async function main() {
   document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => { setQmode(b.dataset.q); $("q").focus(); }));
   document.addEventListener("click", (ev) => { if ($("datesPop").open && !$("datesPop").contains(ev.target)) $("datesPop").open = false; });
   $("aboutBtn").onclick = () => $("aboutDlg").showModal();
+  // "where discoveries are reported" (team's discovery card): the list under the heading opens and closes (closed at first)
+  const showReportBody = (open) => { $("reportBody").hidden = !open; $("reportToggle").setAttribute("aria-expanded", String(open)); };
+  $("reportToggle").onclick = () => showReportBody($("reportBody").hidden);
   $("dTo").max = new Date().toISOString().slice(0, 10);
   $("pickLoad").onclick = () => {
     if (!S.pick) return;

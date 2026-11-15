@@ -229,6 +229,36 @@
       </ul>
     </section>
   </aside>
+  <section class="card report" id="reportCard">   <!-- from the team's discovery card (u230709018/SPHEREx, d238797) -->
+      <h3><button id="reportToggle" class="rep-toggle" type="button" aria-expanded="false" aria-controls="reportBody">Found something new? Where discoveries are reported <span class="chev" aria-hidden="true">▸</span></button></h3>
+      <p class="muted small">This tool does not register discoveries. Each kind of object has its own official service: the finder reports it there, and official names come from those services, not from the finder. First make sure it is not already known (Gaia DR3 and Known asteroids overlays) and not an artifact (Data-quality notes; seen in more than one visit).</p>
+      <div id="reportBody" hidden>
+      <div class="rep-cols">
+        <div class="rep-kind">
+          <h4>Moving Solar System body <span class="muted">(asteroid, comet, distant planet)</span></h4>
+          <p>The IAU <a href="https://docs.minorplanetcenter.net/mpc-ops-docs/astrometry/reporting-observations/" target="_blank" rel="noopener">Minor Planet Center (MPC) ↗</a> takes measured positions (ADES format) from observers with an <a href="https://docs.minorplanetcenter.net/mpc-ops-docs/observatory-and-program-codes/observatory-codes/" target="_blank" rel="noopener">MPC observatory code ↗</a>; new observers ask for a code and first show good measurements of known objects. In practice, send your finding to an astronomy club, observatory or survey team that reports to the MPC.</p>
+          <p>A possible comet: also e-mail the IAU <a href="http://www.cbat.eps.harvard.edu/HowToReportDiscovery.html" target="_blank" rel="noopener">Central Bureau for Astronomical Telegrams (CBAT) ↗</a> at <code>cbatiau@eps.harvard.edu</code>, as plain text with the object type in the subject line.</p>
+          <p class="name-rule">Names: once an asteroid is numbered, its discoverer may propose a name, which the IAU Working Group on Small Body Nomenclature approves. Comets carry the names of their discoverers.</p>
+        </div>
+        <div class="rep-kind">
+          <h4>Brown dwarf or fast-moving star</h4>
+          <p>There is no official registry. Post it on the <a href="https://www.zooniverse.org/projects/marckuchner/backyard-worlds-planet-9/talk/694" target="_blank" rel="noopener">Backyard Worlds: Planet 9 Talk forum ↗</a> (Science board, Zooniverse account needed to post), where volunteers and astronomers discuss candidates and arrange follow-up with other telescopes. Volunteers who found brown dwarfs this way have been co-authors of the science papers.</p>
+          <p class="name-rule">Names: catalogue designations built from the coordinates (e.g. WISEA J110125.95+540052.8). The IAU does not give personal names to stars.</p>
+        </div>
+        <div class="rep-kind">
+          <h4>Variable star <span class="muted">(changes brightness, does not move)</span></h4>
+          <p><a href="https://vsx.aavso.org/index.php?view=registration.top" target="_blank" rel="noopener">Register ↗</a> and log in at the AAVSO International Variable Star Index (VSX), then use <a href="https://vsx.aavso.org/index.php?view=submit.top" target="_blank" rel="noopener">Submit ↗</a> to enter a new variable star. Moderators check that it is variable and new; its light curve is the evidence. A sudden outburst (possible nova) goes to the CBAT first.</p>
+          <p class="name-rule">Names: VSX lists the star under a catalogue designation; the finder does not choose it.</p>
+        </div>
+        <div class="rep-kind">
+          <h4>Transient <span class="muted">(appears in one visit, does not move)</span></h4>
+          <p><a href="https://www.wis-tns.org/user/register" target="_blank" rel="noopener">Request an account ↗</a> on the IAU <a href="https://www.wis-tns.org/" target="_blank" rel="noopener">Transient Name Server (TNS) ↗</a> (it asks for your affiliation or, without one, why you need the account), log in and open <b>Reports → AT report</b>. It asks for the discovery brightness and the last time the source was not seen. Novae and comets: the CBAT.</p>
+          <p class="name-rule">Names: TNS gives every new transient a designation such as AT 2026abc; your own name for it can go in its “Internal name” field.</p>
+        </div>
+      </div>
+      <p class="muted small">Steps checked against each service's own pages on 15 November 2026; they may change their menus.</p>
+      </div>
+    </section>
 </main>
 
 <footer class="foot">

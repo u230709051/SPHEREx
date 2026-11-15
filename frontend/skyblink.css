@@ -70,3 +70,4 @@ body:has(#skyblink-opening:not([hidden])) { overflow: hidden; }
 }
 /* the sky map card as on the original page: solid panel and border, no nebula behind it */
 #team-view .context.card { background: var(--panel); border: 1px solid var(--line); box-shadow: none; }
+#team-view .layout > #reportCard { background: #0b1222; box-shadow: 0 0 0 1px #1d2840, 0 8px 28px #0007; }
