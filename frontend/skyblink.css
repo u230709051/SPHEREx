@@ -1,0 +1,62 @@
+body:has(#skyblink-opening:not([hidden])) { overflow: hidden; }
+#team-view {
+  position: relative; isolation: isolate; min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+#team-view::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, #06091470, #06091499),
+    url("skyblink-nebula.jpg") center / cover no-repeat;
+  animation: skyblink-workspace-drift 60s ease-in-out infinite alternate;
+}
+#team-view .card, #team-view .stage, #team-view .topbar, #team-view .foot {
+  border: 0;
+}
+#team-view .card {
+  background: linear-gradient(145deg, #0a10218a, #0a102120);
+}
+#team-view .topbar {
+  background: linear-gradient(#090f20c7, #090f2040);
+}
+@keyframes skyblink-workspace-drift {
+  from { transform: scale(1.04); }
+  to { transform: translate3d(0.7%, 0.4%, 0) scale(1.07); }
+}
+#skyblink-opening {
+  position: fixed; inset: 0; z-index: 10000; isolation: isolate;
+  display: grid; place-items: center; overflow: hidden;
+  background: #060914; color: #fff; text-align: center;
+  transition: opacity .32s .43s ease-out;
+}
+#skyblink-opening[hidden] { display: none; }
+#skyblink-opening::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: url("skyblink-opening.jpg") center / cover no-repeat;
+  animation: skyblink-drift 8s ease-in-out infinite alternate;
+}
+#skyblink-opening.departing { opacity: 0; pointer-events: none; }
+#skyblink-opening.departing::before {
+  animation: skyblink-dive .75s cubic-bezier(.44,.02,.83,.65) both;
+}
+#skyblink-opening .landing-menu { padding: 24px; transition: opacity .32s, transform .42s; }
+#skyblink-opening.departing .landing-menu { opacity: 0; transform: translateY(-18px) scale(1.1); }
+#skyblink-opening h1 {
+  font: 750 clamp(48px, 10vw, 120px) / 1 system-ui, sans-serif;
+  letter-spacing: -.075em; margin: 0 0 28px; color: inherit;
+}
+#skyblink-opening .opening-mark { display: block; width: clamp(115px, 19vw, 205px); margin: 0 auto 12px; overflow: visible; }
+#skyblink-opening .opening-stars { filter: drop-shadow(0 0 9px #a889ff9c); }
+#skyblink-explore {
+  font: 700 14px system-ui, sans-serif; min-width: 122px; padding: 10px 19px;
+  border-radius: 100px; border: 0; color: #171126; background: #f1edff;
+  box-shadow: 0 6px 45px #af96fb66; cursor: pointer;
+}
+#skyblink-explore:focus-visible { outline: 2px solid #fff; outline-offset: 5px; }
+@keyframes skyblink-drift { from { transform: scale(1.015); } to { transform: scale(1.11); } }
+@keyframes skyblink-dive { from { transform: scale(var(--opening-scale, 1.06)); } to { transform: scale(3.5); } }
+@media (prefers-reduced-motion: reduce) {
+  #team-view::before { animation: none; }
+  #skyblink-opening, #skyblink-opening .landing-menu { transition: none; }
+  #skyblink-opening::before, #skyblink-opening.departing::before { animation: none; }
+}

@@ -128,13 +128,29 @@ function medianOthers(arrs, skip) {
   return out;
 }
 // ---------------------------------------------------------------- date range
+function numberSetting(id, fallback) {
+  const input = $(id), value = input.valueAsNumber;
+  return Number.isFinite(value) ? Math.max(+input.min, Math.min(+input.max, value)) : fallback;
+}
 function dateRange() { return { from: $("dFrom").value || null, to: $("dTo").value || null }; }
+function validateDates() {
+  const from = $("dFrom"), to = $("dTo"), today = new Date().toISOString().slice(0, 10);
+  for (const input of [from, to]) {
+    input.setCustomValidity("");
+    if (input.validity.badInput) input.setCustomValidity("Please enter a valid date.");
+    else if (input.value && input.value < input.min) input.setCustomValidity("Please choose a date on or after January 1, 1997.");
+    else if (input.value && input.value > today) input.setCustomValidity("Please choose a date that is not in the future.");
+  }
+  if (from.value && to.value && from.value > to.value) to.setCustomValidity("The end date must be on or after the start date.");
+  return from.checkValidity() && to.checkValidity();
+}
 function inRange(e) {   // a visit (or archival epoch) overlapping the chosen dates
   const r = dateRange();
   return (!r.from || e.date_end >= r.from) && (!r.to || e.date_start <= r.to);
 }
 function rangeNote(text) { $("rangeNote").hidden = !text; $("rangeNote").textContent = text || ""; }
 function onRangeChange() {
+  if (!validateDates()) return;
   setHash();
   if (!S.result || isMoving()) return;
   const dr = S.result.date_range, r = dateRange();
@@ -163,7 +179,13 @@ function rebuildDisplay() {
   buildTimeline();
   const eps = S.epochs.map((e) => e.epoch);
   const dets = [...S.dets];
-  if (S.mode === "color") {
+  if (S.mode === "blink" && $("detectorOverlay").checked) {
+    S.display = eps.map((ep) => {
+      // archival epochs (2MASS/WISE) cover only some bands: show theirs if none of the selected ones exist
+      const use = ep < 0 && !DETS.some((d) => S.dets.has(d) && S.z.has(`${ep}|${d}`)) ? new Set(DETS) : S.dets;
+      return DETS.map((d) => (use.has(d) ? S.z.get(`${ep}|${d}`) || null : null));
+    });
+  } else if (S.mode === "color") {
     const ch = [["D5", "D6"], ["D3", "D4"], ["D1", "D2"]];
     S.display = eps.map((ep) => ch.map((c) => composite(ep, c)));
   } else if (S.mode === "cdiff") {
@@ -298,7 +320,23 @@ function render() {
   for (let y = 0; y < ny; y++) {
     for (let x = 0; x < nx; x++) {
       const src = y * nx + x, dst = ((ny - 1 - y) * nx + x) * 4;
-      if (chans.length === 3) {
+      if (chans.length === DETS.length) {
+        // Screen-blend independently coloured, partially transparent cutouts.
+        // A positive signal above the local background controls each layer's opacity.
+        const rgb = [0, 0, 0]; let found = false;
+        chans.forEach((a, i) => {
+          if (!a || !Number.isFinite(a[src])) return;
+          found = true;
+          const high = Math.max(2, S.limits[i][1]);
+          const alpha = 0.8 * Math.sqrt(Math.max(0, Math.min(1, (a[src] - 0.5) / (high - 0.5))));
+          const color = DET_COLORS[DETS[i]];
+          for (let c = 0; c < 3; c++) {
+            const component = parseInt(color.slice(1 + c * 2, 3 + c * 2), 16) / 255;
+            rgb[c] = 1 - (1 - rgb[c]) * (1 - alpha * component);
+          }
+        });
+        for (let c = 0; c < 3; c++) img.data[dst + c] = found ? Math.round(rgb[c] * 255) : 0;
+      } else if (chans.length === 3) {
         for (let c = 0; c < 3; c++) {
           const a = chans[c];
           let v = a ? stretch(a[src], S.limits[c], kk) : 0;
@@ -334,7 +372,7 @@ function render() {
   drawOverlay();
 }
 function view() {
-  const [ny, nx] = S.result.grid.shape, zoom = +$("zoom").value, sw = nx / zoom;
+  const [ny, nx] = S.result.grid.shape, zoom = numberSetting("zoom", 1), sw = nx / zoom;
   return { sx: (nx - sw) / 2, sy: (ny - sw) / 2, sw, scale: $("img").width / sw, nx, ny };
 }
 function toCanvas(x, y) {
@@ -426,8 +464,8 @@ function step(d) { if (!S.epochs.length) return; S.cur = (S.cur + d + S.epochs.l
 function play(on) {
   S.playing = on; $("playBtn").textContent = on ? "⏸" : "▶︎";
   clearTimeout(S.timer);
-  const tick = () => { if (!S.playing) return; step(1); S.timer = setTimeout(tick, +$("speed").value); };
-  if (on) S.timer = setTimeout(tick, +$("speed").value);
+  const tick = () => { if (!S.playing) return; step(1); S.timer = setTimeout(tick, numberSetting("speed", 600)); };
+  if (on) S.timer = setTimeout(tick, numberSetting("speed", 600));
 }
 
 // ---------------------------------------------------------------- loading
@@ -547,6 +585,7 @@ function onResult(res, opt = {}) {
   const same = Boolean(S.result && S.result.partial && S.result.key === res.key);
   const curId = same ? S.epochs[S.cur]?.epoch : null;
   S.result = res; S.key = res.key; S.epochs = S.sph = res.epochs; S.arch = null;
+  $("stackMode").textContent = res.mode === "moving" ? "Align & stack" : "Combine visits";
   S.cur = same ? Math.max(0, res.epochs.findIndex((e) => e.epoch === curId)) : 0;
   S.sphIdx = new Map(res.epochs.map((e, i) => [e.epoch, i]));
   if (opt.partial) {
@@ -606,6 +645,7 @@ function buildDetButtons() {
   DETS.forEach((d) => {
     const b = document.createElement("button");
     b.innerHTML = `${d}<span class="wl">${DET_WL[d]}µm</span>`;
+    b.style.setProperty("--detector-color", DET_COLORS[d]);
     b.classList.toggle("on", S.dets.has(d));
     b.disabled = !present.has(d);
     b.title = `Detector ${d} (${DET_WL[d]} µm). Shift-click to select only this one.`;
@@ -724,7 +764,8 @@ async function fetchGaia() {
     el.textContent = `Gaia match: G=${fmt(match.g, 1)}${match.pm_total ? `, pm ${fmt(match.pm_total / 1000, 2)}″/yr` : ""}`;
   } else {
     el.className = "badge warn";
-    el.textContent = "No Gaia counterpart – invisible in optical light";
+    el.textContent = "No Gaia match found";
+    el.title = "No match was found near this position; this alone does not establish that the source is new or invisible in optical light.";
   }
   drawOverlay();
 }
@@ -1052,7 +1093,7 @@ async function updateContext() {
     al.addCatalog(marks);
     marks.addSources(S.epochs.map((e, i) => A.source(e.target_ra, e.target_dec,
       { label: i === 0 || i === S.epochs.length - 1 || S.epochs[i].date_start.slice(0, 7) !== S.epochs[i - 1].date_start.slice(0, 7) ? e.date_start.slice(0, 10) : "" })));
-    $("contextNote").textContent = `Purple: path of ${S.result.name} across the sky at the times SPHEREx imaged it (${S.epochs[0].date_start.slice(0, 10)} → ${S.epochs.at(-1).date_start.slice(0, 10)}). Powered by Aladin Lite (CDS).`;
+    $("contextNote").textContent = `Purple: path of ${S.result.name} during SPHEREx observations (${S.epochs[0].date_start.slice(0, 10)} → ${S.epochs.at(-1).date_start.slice(0, 10)}).`;
     return;
   }
   al.gotoRaDec(c[0], c[1]);
@@ -1078,10 +1119,10 @@ async function updateContext() {
                    [e1.jyear, `${e0.date_start.slice(0, 4)}–${e1.date_start.slice(0, 4)} SPHEREx`]];
     marks.addSources(stops.map(([y, label]) => { const [ra, dec] = propagateJs(t, y); return A.source(ra, dec, { label }); }));
     const moved = (pm / 1000) * (e1.jyear - 1953) / 60;
-    $("contextNote").textContent = `Orange track: ${t.name || "target"} moved ${moved.toFixed(1)}′ since the 1953 Palomar plates (${(pm / 1000).toFixed(2)}″/yr). Switch the background to compare decades. Blue square: the SPHEREx field above. Powered by Aladin Lite (CDS).`;
+    $("contextNote").textContent = `Blue: SPHEREx field. Orange: predicted path of ${t.name || "target"} since 1953 (${moved.toFixed(1)}′, ${(pm / 1000).toFixed(2)}″/yr). Change the background to compare surveys.`;
     if (moved * 60 > S.fov * 60 * 0.6) al.setFoV(Math.max((S.fov / 60) * 1.5, (moved / 60) * 1.4) * aspect);
   } else {
-    $("contextNote").textContent = "Blue square: the SPHEREx field shown above. Use the background menu to compare with other surveys. Powered by Aladin Lite (CDS).";
+    $("contextNote").textContent = "The blue square shows the current SPHEREx field. Change the background to compare surveys.";
   }
 }
 
@@ -1280,10 +1321,12 @@ async function initFromHash(targets) {
   // always follow the link (also cleared): a saved-candidate link opened later must not inherit old dates
   $("dFrom").value = /^\d{4}-\d{2}-\d{2}$/.test(h.get("from") || "") ? h.get("from") : "";
   $("dTo").value = /^\d{4}-\d{2}-\d{2}$/.test(h.get("to") || "") ? h.get("to") : "";
+  if (!validateDates()) { $("dFrom").value = ""; $("dTo").value = ""; validateDates(); }
   if (!h.get("object")) $("qmode").value = "sky";
   if (h.get("speed")) $("speed").value = h.get("speed");
   if (h.get("invert") === "0") $("invert").checked = false;
   if (h.get("zoom")) $("zoom").value = h.get("zoom");
+  $("speed").value = numberSetting("speed", 600); $("zoom").value = numberSetting("zoom", 1);
   document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("on", b.dataset.mode === S.mode));
   const fov = +$("fov").value;
   if (h.get("object")) { $("qmode").value = "sso"; return loadObject(h.get("object"), fov); }
@@ -1300,13 +1343,15 @@ async function initFromHash(targets) {
 async function main() {
   let targets = [];
   try { targets = await api("/api/targets"); } catch { /* offline */ }
-  api("/api/index").then((i) => {   // how recent the searchable SPHEREx data is
+  api("/api/index").then((i) => {
     if (i.available) $("indexNote").textContent = ` Searchable SPHEREx images: up to ${mjdToDate(i.mjd_max)} (index updated ${i.built.slice(0, 10)}).`;
   }).catch(() => {});
-  $("demos").innerHTML = targets.map((t) => `<button data-id="${t.id}" title="${t.note}">${t.name}<span class="k">${t.kind}</span></button>`).join("")
-    + `<button class="sso" data-obj="3I" title="Interstellar comet 3I/ATLAS, imaged by SPHEREx in Aug and Dec 2025">3I/ATLAS<span class="k">interstellar comet</span></button>`;
-  $("demos").querySelector("[data-obj]").onclick = () => { $("qmode").value = "sso"; loadObject("3I", 4); };
+  const targetButton = (t) => `<button type="button" data-id="${t.id}" title="${t.note}">${t.name}</button>`;
+  $("demos").innerHTML = targets.map(targetButton).join("")
+    + `<button type="button" class="sso" data-obj="3I" title="Interstellar comet 3I/ATLAS, imaged by SPHEREx in Aug and Dec 2025">3I/ATLAS</button>`;
+  $("demos").querySelector("[data-obj]").onclick = () => { if (!validateDates()) { $("searchForm").reportValidity(); return; } $("qmode").value = "sso"; loadObject("3I", 4); };
   $("demos").querySelectorAll("button[data-id]").forEach((b) => (b.onclick = () => {
+    if (!validateDates()) { $("searchForm").reportValidity(); return; }
     $("qmode").value = "sky";
     const t = targets.find((x) => x.id === b.dataset.id);
     if (t.id === "wise0855" || t.id === "eps_ind_b") { S.dets = new Set(["D5", "D6"]); }
@@ -1315,24 +1360,38 @@ async function main() {
     loadTarget(t, +$("fov").value);
   }));
   $("searchForm").onsubmit = (e) => { e.preventDefault(); if ($("q").value.trim()) submitQuery($("q").value.trim()); };
+  $("clearDates").onclick = () => {
+    $("dFrom").value = ""; $("dTo").value = ""; validateDates();
+    if (S.target?.sso) loadObject(S.target.name, S.fov);
+    else if (S.target) loadTarget(S.target, S.fov);
+    else { rangeNote(null); setHash(); }
+  };
+  $("resetView").onclick = () => {
+    S.dets = new Set(DETS);
+    $("speed").value = 600; $("zoom").value = 1;
+    $("invert").checked = true; $("detectorOverlay").checked = false;
+    if (S.result) buildDetButtons();
+    setMode("blink");
+  };
   $("playBtn").onclick = () => play(!S.playing);
   $("prevBtn").onclick = () => { play(false); step(-1); };
   $("nextBtn").onclick = () => { play(false); step(1); };
   document.querySelectorAll(".mode").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
   ["lo", "hi"].forEach((id) => ($(id).oninput = () => { computeLimits(); render(); }));
   ["asinh", "invert"].forEach((id) => ($(id).oninput = () => { render(); setHash(); }));
-  $("zoom").oninput = () => { render(); setHash(); };
-  $("speed").oninput = () => setHash();
+  $("detectorOverlay").onchange = () => rebuildDisplay();
+  $("zoom").onchange = () => { $("zoom").value = numberSetting("zoom", 1); render(); setHash(); };
+  $("speed").onchange = () => { $("speed").value = numberSetting("speed", 600); setHash(); };
   ["ovTarget", "ovGaia", "ovBorder", "ovCand"].forEach((id) => ($(id).onchange = drawOverlay));
   $("ovArch").onchange = () => { rebuildDisplay(); showMotionBadge(); };
   ["trkDist", "trkVe", "trkVn"].forEach((id) => ($(id).oninput = trkRedraw));
+  ["dFrom", "dTo"].forEach((id) => { $(id).oninput = validateDates; $(id).onchange = onRangeChange; });
   $("saveCand").onclick = addSaved;
   $("savedCsv").onclick = downloadSaved;
   $("copyLink").onclick = () => share(viewUrl(false), $("copyLink"));
   $("copyEmbed").onclick = () => share(`<iframe src="${viewUrl(true)}" width="600" height="760" style="border:0" loading="lazy" title="SPHEREx Time Machine"></iframe>`, $("copyEmbed"));
   renderSaved();
   window.addEventListener("hashchange", () => initFromHash(targets));   // opening a saved candidate link
-  ["dFrom", "dTo"].forEach((id) => ($(id).onchange = onRangeChange));
   $("dTo").max = new Date().toISOString().slice(0, 10);
   $("pickLoad").onclick = () => {
     if (!S.pick) return;
@@ -1373,7 +1432,8 @@ async function main() {
     } catch (err) { clearTimeout(slow); $("specTitle").textContent = `Spectrum: ${err.message}`; }
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.target.matches("input[type=text], select")) return;
+    if (document.getElementById("team-view").inert) return;
+    if (ev.target.matches("input, select, textarea")) return;
     const k = ev.key.toLowerCase();
     if (k === " ") { ev.preventDefault(); play(!S.playing); }
     else if (k === "arrowleft") { play(false); step(-1); }
