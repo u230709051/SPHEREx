@@ -154,7 +154,7 @@ function setQmode(v) {   // "Sky position | Moving object" toggle drives the (hi
 }
 function updateDatesSummary() {
   const r = dateRange(), el = $("datesSummary");
-  el.textContent = r.from || r.to ? `Dates: ${r.from || "…"} → ${r.to || "…"}` : "Date range (optional)";
+  el.textContent = r.from || r.to ? `Dates: ${r.from || "…"} → ${r.to || "…"}` : "Date range";
   el.classList.toggle("set", Boolean(r.from || r.to));
 }
 function useArchival() {
@@ -1320,10 +1320,11 @@ async function main() {
   api("/api/index").then((i) => {   // how recent the searchable SPHEREx data is
     if (i.available) $("indexNote").textContent = ` Searchable SPHEREx images: up to ${mjdToDate(i.mjd_max)} (index updated ${i.built.slice(0, 10)}).`;
   }).catch(() => {});
-  // names only (less clutter); the kind and note show on hover
-  $("demos").innerHTML = targets.map((t) => `<button data-id="${t.id}" title="${t.kind}: ${t.note}">${t.name}</button>`).join("");
-  $("bonusDemos").innerHTML = `<button class="sso" data-obj="3I" title="Interstellar comet 3I/ATLAS, imaged by SPHEREx in Aug and Dec 2025">3I/ATLAS</button>`;
-  $("bonusDemos").querySelector("[data-obj]").onclick = () => { setQmode("sso"); loadObject("3I", 4); };
+  // names only (less clutter); what each target is shows in a tooltip on hover/focus
+  const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  $("demos").innerHTML = targets.map((t) => `<button data-id="${t.id}" data-kind="${esc(t.kind)}" data-tip="${esc(t.note)}" aria-label="${esc(t.name)}: ${esc(t.kind)}">${esc(t.name)}</button>`).join("")
+    + `<button class="sso" data-obj="3I" data-kind="interstellar comet" data-tip="Third interstellar object ever found; SPHEREx imaged it in August and December 2025 (opens in moving-object mode)." aria-label="3I/ATLAS: interstellar comet">3I/ATLAS</button>`;
+  $("demos").querySelector("[data-obj]").onclick = () => { setQmode("sso"); loadObject("3I", 4); };
   $("demos").querySelectorAll("button[data-id]").forEach((b) => (b.onclick = () => {
     setQmode("sky");
     const t = targets.find((x) => x.id === b.dataset.id);

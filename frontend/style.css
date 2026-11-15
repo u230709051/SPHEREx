@@ -66,7 +66,16 @@ h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
 .fov { order: 5; }
 .dates-pop { order: 6; }
 .search-hint { order: 7; flex: 1 1 240px; text-align: right; margin: 0; }
-.bonus-label { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+/* target tooltip: what the target is, shown at once on hover or keyboard focus */
+.demos button[data-tip] { position: relative; }
+.demos button[data-tip]::after {
+  content: attr(data-kind) " — " attr(data-tip); position: absolute; left: 0; top: calc(100% + 8px); z-index: 80;
+  width: max-content; max-width: 280px; padding: 8px 10px; border-radius: 8px; white-space: normal; text-align: left;
+  font-size: 12px; line-height: 1.45; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+  box-shadow: 0 8px 24px #000a; opacity: 0; transform: translateY(-3px); pointer-events: none; transition: opacity .12s, transform .12s;
+}
+.demos button[data-tip]:hover::after, .demos button[data-tip]:focus-visible::after { opacity: 1; transform: none; }
+.demos button[data-tip]:last-child::after { left: auto; right: 0; }
 dialog.about { max-width: 560px; width: calc(100% - 32px); background: var(--panel); color: var(--text); border: 1px solid var(--line);
   border-radius: 12px; padding: 20px 22px; line-height: 1.55; }
 dialog.about::backdrop { background: #000a; }

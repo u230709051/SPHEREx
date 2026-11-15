@@ -69,12 +69,12 @@
       </select>
     </label>
     <details class="dates-pop" id="datesPop">
-      <summary id="datesSummary" title="Only use visits between two dates (optional)">Date range (optional)</summary>
+      <summary id="datesSummary" title="Choose which visits to compare">Date range</summary>
       <div class="dates-panel">
         <label>From <input id="dFrom" type="date" min="1997-01-01" aria-label="From date"></label>
         <label>To <input id="dTo" type="date" min="1997-01-01" aria-label="To date"></label>
         <button type="button" id="clearDates" class="ghost small">Clear dates</button>
-        <p class="muted small">Leave empty to use every visit. SPHEREx observes since April 2025; a range reaching back to 2010 or 2000 also adds the archival WISE and 2MASS frames.</p>
+        <p class="muted small">Choose which visits to compare (empty = all visits). SPHEREx observes since April 2025; a range reaching back to 2010 or 2000 also adds the archival WISE and 2MASS frames.</p>
       </div>
     </details>
     <button type="submit" class="primary">Load</button>
@@ -84,8 +84,6 @@
   <div class="examples">
     <strong>Challenge test targets</strong>
     <div class="demos" id="demos" aria-label="Challenge test targets"></div>
-    <span class="bonus-label">Bonus</span>
-    <div class="demos" id="bonusDemos" aria-label="Bonus target"></div>
   </div>
   <div class="demos" id="candidates" hidden></div>
 </header>
