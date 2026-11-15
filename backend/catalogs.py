@@ -93,7 +93,8 @@ def resolve(query: str) -> dict | None:
     q = _norm(query)
     for t in TARGETS:
         if q == _norm(t["name"]) or q in (_norm(a) for a in t["aliases"]) or q == t["id"]:
-            return {**{k: t[k] for k in ("name", "ra", "dec", "pmra", "pmdec", "ref_epoch", "kind", "note")},
+            return {**{k: t[k] for k in ("name", "ra", "dec", "pmra", "pmdec", "ref_epoch", "kind", "note",
+                                         "description", "interesting_fact", "story", "sources") if k in t},
                     "source": "built-in"}
     services = (_simbad_harvard, _sesame)
     failed = 0
@@ -114,7 +115,7 @@ def resolve(query: str) -> dict | None:
 # Gaia DR3 (ESA TAP, MAST VO cone search as fallback)
 # --------------------------------------------------------------------------- #
 def _gaia_esa(ra, dec, radius_deg, gmax):
-    q = ("SELECT TOP 3000 source_id, ra, dec, pmra, pmdec, parallax, phot_g_mean_mag "
+    q = ("SELECT TOP 3000 source_id, ra, dec, pmra, pmdec, parallax, phot_g_mean_mag, bp_rp, teff_gspphot "
          "FROM gaiadr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS',ra,dec),"
          f"CIRCLE('ICRS',{ra},{dec},{radius_deg})) AND phot_g_mean_mag < {gmax}")
     body = urllib.parse.urlencode({"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv", "QUERY": q}).encode()
@@ -168,9 +169,73 @@ def gaia_sources(ra: float, dec: float, radius_deg: float, jyears: list[float], 
         pos = [propagate(r_ra, r_dec, pmra if has_pm else 0, pmdec if has_pm else 0, 2016.0, jy) for jy in jyears]
         out.append({"source_id": r.get("source_id"), "g": f(r.get("phot_g_mean_mag")),
                     "pmra": pmra, "pmdec": pmdec, "parallax": f(r.get("parallax")),
+                    "bp_rp": f(r.get("bp_rp")), "teff": f(r.get("teff_gspphot")),
                     "pm_total": float(np.hypot(pmra, pmdec)) if has_pm else None,
                     "positions": pos})
     return {"provider": provider, "sources": out}
+
+
+# --------------------------------------------------------------------------- #
+# Object information at a sky position (SIMBAD)
+# --------------------------------------------------------------------------- #
+_OTYPE_NAMES = {
+    "*": "Star", "Star": "Star", "PM*": "High proper-motion star", "V*": "Variable star",
+    "BD*": "Brown dwarf", "WD*": "White dwarf", "**": "Double or multiple star", "EB*": "Eclipsing binary",
+    "G": "Galaxy", "Galaxy": "Galaxy", "QSO": "Quasar", "AGN": "Active galaxy nucleus", "PN": "Planetary nebula",
+    "Neb": "Nebula", "Cl*": "Star cluster", "Pl": "Planet", "Pl?": "Planet candidate", "Planet": "Planet",
+}
+
+
+def object_info(ra: float, dec: float, radius_arcsec: float = 12.0) -> dict:
+    """Return the closest SIMBAD object to a position, without inventing a match."""
+    radius_arcsec = min(60.0, max(1.0, float(radius_arcsec)))
+    radius_deg = radius_arcsec / 3600.0
+    query = ("SELECT TOP 10 main_id, ra, dec, otype, sp_type, plx_value, pmra, pmdec "
+             "FROM basic WHERE 1=CONTAINS(POINT('ICRS', ra, dec), "
+             f"CIRCLE('ICRS', {float(ra):.8f}, {float(dec):.8f}, {radius_deg:.10f}))")
+    body = urllib.parse.urlencode({"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv", "QUERY": query}).encode()
+    rows = None
+    for server in ("simbad.cds.unistra.fr", "simbad.harvard.edu"):
+        try:
+            rows = list(csv.DictReader(io.StringIO(_get(f"https://{server}/simbad/sim-tap/sync", timeout=25, data=body))))
+            break
+        except Exception:
+            continue
+    if rows is None:
+        return {"matched": False, "available": False}
+
+    def number(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    matches = []
+    for row in rows:
+        obj_ra, obj_dec = number(row.get("ra")), number(row.get("dec"))
+        if obj_ra is None or obj_dec is None:
+            continue
+        dra = (obj_ra - ra + 180.0) % 360.0 - 180.0
+        separation = float(np.hypot(dra * np.cos(np.radians((obj_dec + dec) / 2.0)), obj_dec - dec) * 3600.0)
+        matches.append((separation, row, obj_ra, obj_dec))
+    if not matches:
+        return {"matched": False, "available": True, "radius_arcsec": radius_arcsec}
+
+    separation, row, obj_ra, obj_dec = min(matches, key=lambda item: item[0])
+    parallax = number(row.get("plx_value")); pmra, pmdec = number(row.get("pmra")), number(row.get("pmdec"))
+    raw_type = (row.get("otype") or "").strip(); simbad_id = (row.get("main_id") or "SIMBAD object").strip()
+    return {
+        "matched": True, "name": simbad_id.removeprefix("NAME "), "simbad_id": simbad_id,
+        "type": _OTYPE_NAMES.get(raw_type, raw_type or "Catalogued object"),
+        "spectral_type": (row.get("sp_type") or "").strip() or None,
+        "ra": obj_ra, "dec": obj_dec, "separation_arcsec": separation, "parallax": parallax,
+        "distance_pc": 1000.0 / parallax if parallax is not None and parallax > 0 else None,
+        "pmra": pmra, "pmdec": pmdec,
+        "pm_total": float(np.hypot(pmra, pmdec)) if pmra is not None and pmdec is not None else None,
+        "source": "SIMBAD",
+        "note": ("This planet is a catalogue association at the host star's position; SPHEREx does not spatially resolve it from the star.")
+                if raw_type in {"Pl", "Pl?", "Planet"} else None,
+    }
 
 
 # --------------------------------------------------------------------------- #

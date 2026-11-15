@@ -15,13 +15,19 @@ const FEATURES = [
   { lo: 4.20, hi: 4.35, label: "CO₂", kind: "mol" }, { lo: 4.50, hi: 4.80, label: "CO", kind: "mol" },
 ];
 const LINES = [[1.282, "Paβ"], [1.875, "Paα"], [2.166, "Brγ"], [3.30, "PAH"], [4.052, "Brα"]];
+const THREE_I_PROFILE = {
+  description: "3I/ATLAS is an active comet on a hyperbolic path that originated outside the Solar System. It is the third confirmed interstellar object observed passing through our planetary neighbourhood.",
+  interesting_fact: "NASA reports that SPHEREx detected infrared emission from dust, water, organic molecules and carbon dioxide in the comet's coma.",
+  story: "The NASA-funded ATLAS survey in Chile reported it on July 1, 2025. The “3I” designation means it is the third confirmed interstellar object; “ATLAS” credits the discovering survey.",
+  sources: [{ label: "NASA 3I/ATLAS", url: "https://science.nasa.gov/solar-system/comets/3i-atlas/" }],
+};
 
 const $ = (id) => document.getElementById(id);
 const S = {
   result: null, key: null, z: new Map(), epochs: [], cur: 0, playing: true, timer: null,
   mode: "blink", dets: new Set(["D5", "D6"]), display: [], limits: null,
   gaia: null, ast: null, spec: null, specLabel: null, target: null, fov: 5, pending: null,
-  embed: false,
+  embed: false, objectRequest: 0, objectCloseTimer: null, selectedObject: null,
 };
 
 // ---------------------------------------------------------------- helpers
@@ -455,6 +461,7 @@ function showProgress(on, msg, frac) {
 // Results made with fewer images (QUICK, older links) get a "Sharper images" button.
 const QUICK = { max_per_cell: 3, budget: 120 }, FULL = { max_per_cell: 8, budget: 260 };
 function resetView() {   // a new field is loading: nothing of the previous target may stay on screen
+  closeObjectCard();
   play(false);
   S.result = null; S.key = null; S.epochs = []; S.sph = []; S.display = []; S.arch = null; S.cands = [];
   $("badges").innerHTML = ""; $("timeline").innerHTML = ""; $("epochLabel").textContent = ""; $("readout").textContent = "";
@@ -488,6 +495,7 @@ async function loadTarget(t, fov, quality = FULL) {
 async function loadObject(name, fov) {
   resetView();
   S.target = { name, sso: true, pmra: 0, pmdec: 0 }; S.fov = Math.min(fov || 4, 15); setFovOption(S.fov);
+  if (name === "3I") Object.assign(S.target, THREE_I_PROFILE);
   S.gaia = null; S.ast = null; S.spec = null; S.specLabel = null; $("ovAst").checked = false;
   $("empty").hidden = true; $("candidates").hidden = true;
   $("targetName").textContent = name;
@@ -754,6 +762,136 @@ function gaiaPos(s, e) {   // Gaia position at a visit; archival epochs are prop
   const p0 = s.positions[0], dt = e.jyear - S.sph[0].jyear;
   if (s.pmra == null || s.pmdec == null) return p0;
   return [p0[0] + (s.pmra * dt) / 3.6e6 / Math.cos(p0[1] * D2R), p0[1] + (s.pmdec * dt) / 3.6e6];
+}
+
+// ---------------------------------------------------------------- clicked-object information card
+function skySeparationArcsec(ra1, dec1, ra2, dec2) {
+  const dra = ((ra2 - ra1 + 540) % 360) - 180;
+  return Math.hypot(dra * Math.cos(((dec1 + dec2) / 2) * D2R), dec2 - dec1) * 3600;
+}
+function objectPickRadius() {
+  const pixelArcsec = S.result ? Math.abs(S.result.grid.cdelt[0]) * 3600 : 6.15;
+  return Math.min(18, Math.max(8, pixelArcsec * 2));
+}
+function localObjectAt(ra, dec) {
+  const e = S.epochs[S.cur], radius = objectPickRadius(), candidates = [];
+  if (!e) return null;
+  const add = (obj, objRa, objDec, priority = 2) => {
+    if (objRa == null || objDec == null) return;
+    const separation_arcsec = skySeparationArcsec(ra, dec, objRa, objDec);
+    if (separation_arcsec <= radius) candidates.push({ ...obj, ra: objRa, dec: objDec, separation_arcsec, priority });
+  };
+  if (S.target?.name && e.target_ra != null) {
+    add({ name: S.target.name, type: S.target.kind || (S.target.sso ? "Solar System object" : "Current target"),
+      note: S.target.note || null, pm_total: Math.hypot(S.target.pmra || 0, S.target.pmdec || 0) || null,
+      source: S.target.source || "Current target", description: S.target.description,
+      interesting_fact: S.target.interesting_fact, story: S.target.story, sources: S.target.sources,
+      smallBody: Boolean(S.target.sso) }, e.target_ra, e.target_dec, 0);
+  }
+  for (const s of S.gaia?.sources || []) {
+    const p = gaiaPos(s, e);
+    if (p) add({ name: `Gaia DR3 ${s.source_id}`, type: "Gaia star", source: S.gaia.provider || "Gaia DR3",
+      source_id: s.source_id, g: s.g, parallax: s.parallax, distance_pc: s.parallax > 0 ? 1000 / s.parallax : null,
+      pm_total: s.pm_total, bp_rp: s.bp_rp, teff: s.teff }, p[0], p[1]);
+  }
+  const sphIndex = S.sphIdx?.get(e.epoch);
+  for (const o of sphIndex != null ? (S.ast?.[sphIndex]?.objects || []) : []) {
+    add({ name: o.name || "Known small body", type: "Solar System object", source: "JPL Small-Body Identification", vmag: o.vmag, smallBody: true }, o.ra, o.dec, 1);
+  }
+  candidates.sort((a, b) => Math.abs(a.separation_arcsec - b.separation_arcsec) < 1 ? a.priority - b.priority : a.separation_arcsec - b.separation_arcsec);
+  return candidates[0] || null;
+}
+function closeObjectCard() {
+  S.objectRequest += 1;
+  const card = $("objectCard");
+  if (!card) return;
+  clearTimeout(S.objectCloseTimer); card.classList.remove("open");
+  S.objectCloseTimer = setTimeout(() => { card.hidden = true; }, 230);
+  S.selectedObject = null;
+}
+function openObjectCard() {
+  const card = $("objectCard");
+  clearTimeout(S.objectCloseTimer); card.hidden = false;
+  requestAnimationFrame(() => card.classList.add("open"));
+}
+function addObjectDetail(label, value) {
+  if (value == null || value === "") return;
+  const dt = document.createElement("dt"), dd = document.createElement("dd");
+  dt.textContent = label; dd.textContent = value; $("objectCardDetails").append(dt, dd);
+}
+function addObjectLink(label, href) {
+  const a = document.createElement("a");
+  a.textContent = `${label} ↗`; a.href = href; a.target = "_blank"; a.rel = "noopener";
+  $("objectCardLinks").appendChild(a);
+}
+function addObjectMeta(text) {
+  const chip = document.createElement("span"); chip.textContent = text; $("objectCardSpherexMeta").appendChild(chip);
+}
+function fallbackDescription(obj) {
+  const type = (obj.type || "").toLowerCase();
+  if (type.includes("brown dwarf")) return "A brown dwarf forms like a star but is not massive enough to sustain ordinary hydrogen fusion. Its cool atmosphere emits much of its detectable light at infrared wavelengths.";
+  if (type.includes("galaxy")) return "A galaxy is a gravitationally bound system of stars, gas, dust and dark matter. Infrared observations can reveal older stars and dust-obscured star formation.";
+  if (type.includes("planet")) return "This is a catalogued planetary object or candidate associated with the selected sky position. Most exoplanets are not spatially resolved from their host stars in SPHEREx images.";
+  if (type.includes("asteroid") || type.includes("comet") || type.includes("solar system")) return "This is a moving Solar System object. Repeated observations are needed because its sky position changes with time relative to the background stars.";
+  if (type.includes("variable")) return "This is a star whose measured brightness changes with time. Repeated infrared visits help distinguish intrinsic variability from motion and image artifacts.";
+  if (type.includes("star")) return "This is a catalogued star at the selected position. Its colour, spectrum, parallax and proper motion can reveal its temperature, distance and motion when those measurements are available.";
+  return "A catalogued celestial object is associated with this position. The panel only displays properties returned by the connected catalogues or measured in the currently loaded SPHEREx field.";
+}
+function renderSpherexConnection(obj) {
+  const text = $("objectCardSpherex"); $("objectCardSpherexMeta").replaceChildren();
+  let inside = false;
+  try {
+    const [x, y] = world2pix(obj.ra, obj.dec), [ny, nx] = S.result.grid.shape;
+    inside = x >= 0 && x < nx && y >= 0 && y < ny;
+  } catch { /* invalid WCS position */ }
+  if (!inside) { text.textContent = "This object is not inside the currently loaded SPHEREx field."; return; }
+  const dets = [...new Set(S.result.frames.map((f) => f.det))].sort();
+  text.textContent = `This position falls inside the loaded SPHEREx field, which contains ${S.result.stats.n_used} usable images across ${S.sph.length} visit${S.sph.length === 1 ? "" : "s"}.`;
+  addObjectMeta(`${S.result.stats.n_used} images`); addObjectMeta(`${S.sph.length} visits`);
+  if (dets.length) addObjectMeta(dets.join(" · "));
+}
+function showObjectCard(obj) {
+  if (!obj || obj.matched === false) { closeObjectCard(); return; }
+  openObjectCard(); S.selectedObject = obj;
+  $("objectCardDetails").replaceChildren(); $("objectCardLinks").replaceChildren(); $("objectCardSpherexMeta").replaceChildren();
+  $("objectCardStatus").textContent = obj.source ? `Catalogue match · ${obj.source}` : "Catalogue match";
+  $("objectCardName").textContent = obj.name || "Catalogued object";
+  $("objectCardType").textContent = obj.type || "Catalogued object";
+  $("objectCardDescription").textContent = obj.description || fallbackDescription(obj);
+  $("objectCardFactBox").hidden = !obj.interesting_fact; $("objectCardStoryBox").hidden = !obj.story;
+  $("objectCardFact").textContent = obj.interesting_fact || ""; $("objectCardStory").textContent = obj.story || "";
+  $("objectCardNote").textContent = obj.note || "";
+  addObjectDetail("Coordinates", `${sexa(obj.ra, true)} ${sexa(obj.dec)}`);
+  addObjectDetail("Click offset", obj.separation_arcsec == null ? null : `${fmt(obj.separation_arcsec, 1)}″`);
+  addObjectDetail("G magnitude", obj.g == null ? null : fmt(obj.g, 2)); addObjectDetail("V magnitude", obj.vmag == null ? null : fmt(obj.vmag, 2));
+  addObjectDetail("Spectral type", obj.spectral_type); addObjectDetail("Temperature", obj.teff == null ? null : `${fmt(obj.teff, 0)} K`);
+  addObjectDetail("BP−RP colour", obj.bp_rp == null ? null : fmt(obj.bp_rp, 2)); addObjectDetail("Parallax", obj.parallax == null ? null : `${fmt(obj.parallax, 2)} mas`);
+  addObjectDetail("Approx. distance", obj.distance_pc == null ? null : `${fmt(obj.distance_pc, obj.distance_pc < 100 ? 1 : 0)} pc`);
+  addObjectDetail("Proper motion", obj.pm_total == null ? null : `${fmt(obj.pm_total / 1000, 3)}″/yr`);
+  addObjectDetail("Earth distance", obj.geo_au == null ? null : `${fmt(obj.geo_au, 3)} au`); addObjectDetail("Sun distance", obj.sun_au == null ? null : `${fmt(obj.sun_au, 3)} au`);
+  renderSpherexConnection(obj);
+  const nearby = `https://simbad.cds.unistra.fr/simbad/sim-coo?Coord=${encodeURIComponent(`${obj.ra} ${obj.dec}`)}&Radius=12&Radius.unit=arcsec`;
+  addObjectLink(obj.source === "SIMBAD" ? "SIMBAD" : "SIMBAD nearby", obj.source === "SIMBAD" ? `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(obj.simbad_id || obj.name)}` : nearby);
+  if (obj.source_id) addObjectLink("Gaia archive", "https://gea.esac.esa.int/archive/");
+  if (obj.smallBody) addObjectLink("JPL database", `https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=${encodeURIComponent(obj.name)}`);
+  for (const source of obj.sources || []) if (source?.label && source?.url) addObjectLink(source.label, source.url);
+  addObjectLink("SPHEREx instrument", "https://spherex.caltech.edu/page/instrument");
+}
+async function resolveObjectAt(ra, dec, radiusArcsec = objectPickRadius()) {
+  const local = localObjectAt(ra, dec), request = ++S.objectRequest;
+  if (local) { showObjectCard(local); return; }
+  try {
+    const obj = await api(`/api/object-info?ra=${ra}&dec=${dec}&radius_arcsec=${radiusArcsec.toFixed(2)}`);
+    if (request === S.objectRequest && obj.matched) showObjectCard(obj);
+    else if (request === S.objectRequest) closeObjectCard();
+  } catch { if (request === S.objectRequest) closeObjectCard(); }
+}
+function showMovingObjectCard() {
+  const e = S.epochs[S.cur];
+  showObjectCard({ name: S.result.name || S.target.name, type: S.target.kind || "Solar System object", source: "JPL Horizons via IRSA MOST",
+    ra: e.target_ra, dec: e.target_dec, vmag: e.vmag, geo_au: e.geo_au, sun_au: e.sun_au, smallBody: true,
+    description: S.target.description, interesting_fact: S.target.interesting_fact, story: S.target.story, sources: S.target.sources,
+    note: `Object-centred frame observed ${e.date_start}.` });
 }
 async function fetchArchival() {
   const key = S.key;
@@ -1034,6 +1172,7 @@ function pickPosition(ra, dec) {
     } else S.pickCat.removeAll?.();
     S.pickCat.addSources([A.source(ra, dec, { label: "selected" })]);
   } catch { /* marker is optional */ }
+  resolveObjectAt(ra, dec, 20);
 }
 function propagateJs(t, jyear) {
   const dt = jyear - (t.ref_epoch || 2000);
@@ -1376,6 +1515,7 @@ async function main() {
     S.spec = { points: S.result.points, lightcurve: S.result.lightcurve }; S.specLabel = { name: "target" };
     $("specTitle").textContent = "Spectrum at target"; $("specReset").hidden = true; plotSpectrum(); plotLightcurve(); drawOverlay();
   };
+  $("objectCardClose").onclick = closeObjectCard;
   const ov = $("overlay");
   ov.addEventListener("mousemove", (ev) => {
     if (!S.result) return;
@@ -1384,9 +1524,11 @@ async function main() {
     $("readout").textContent = isMoving() ? "object-centred frame" : `${sexa(ra, true)} ${sexa(dec)}`;
   });
   ov.addEventListener("click", async (ev) => {
-    if (!S.result || isMoving()) return;
+    if (!S.result) return;
+    if (isMoving()) { showMovingObjectCard(); return; }
     const r = ov.getBoundingClientRect(), cx = ((ev.clientX - r.left) / r.width) * ov.width, cy = ((ev.clientY - r.top) / r.height) * ov.height;
     const [ra, dec] = pix2world(...fromCanvas(cx, cy));
+    resolveObjectAt(ra, dec);
     S.specLabel = { ra, dec }; drawOverlay();
     $("specTitle").textContent = `Measuring at ${sexa(ra, true)} ${sexa(dec)}…`;
     const slow = setTimeout(() => { if (S.specLabel && S.specLabel.ra === ra) $("specTitle").textContent =
@@ -1396,13 +1538,15 @@ async function main() {
       clearTimeout(slow);
       $("specTitle").textContent = `Spectrum at ${sexa(ra, true)} ${sexa(dec)}`;
       $("specReset").hidden = false; plotSpectrum(); plotLightcurve();
+      if (S.selectedObject) renderSpherexConnection(S.selectedObject);
     } catch (err) { clearTimeout(slow); $("specTitle").textContent = `Spectrum: ${err.message}`; }
   });
   document.addEventListener("keydown", (ev) => {
     if (document.getElementById("team-view")?.inert) return;   // opening screen still shown
     if (ev.target.matches("input[type=text], select")) return;
     const k = ev.key.toLowerCase();
-    if (k === " ") { ev.preventDefault(); play(!S.playing); }
+    if (k === "escape" && $("objectCard").classList.contains("open")) closeObjectCard();
+    else if (k === " ") { ev.preventDefault(); play(!S.playing); }
     else if (k === "arrowleft") { play(false); step(-1); }
     else if (k === "arrowright") { play(false); step(1); }
     else if (k === "b") setMode("blink"); else if (k === "d") setMode("diff"); else if (k === "c") setMode("color");
