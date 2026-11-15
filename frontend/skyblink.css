@@ -1,3 +1,6 @@
+/* SkyBlink visual design (opening screen, nebula background), made by the team.
+   The readability rules at the end were added with the assistance of an AI coding assistant
+   (Claude, Anthropic); see README "Use of AI". */
 body:has(#skyblink-opening:not([hidden])) { overflow: hidden; }
 #team-view {
   position: relative; isolation: isolate; min-height: 100vh;
