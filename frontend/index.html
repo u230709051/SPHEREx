@@ -6,14 +6,14 @@
   <title>SkyBlink</title>
   <meta name="description" content="Blink NASA SPHEREx infrared images of any patch of sky to find moving and variable objects, with on-the-fly 0.75-5 micron spectra.">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="skyblink.css">
+  <script type="module" src="skyblink.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
   <script type="module">
     import A from "https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js";
     window.A = A;
   </script>
   <script src="app.js" defer></script>
-  <link rel="stylesheet" href="skyblink.css">
-  <script type="module" src="skyblink.js"></script>
 </head>
 <body>
 <section class="landing" id="skyblink-opening" aria-labelledby="landing-title">
@@ -50,6 +50,7 @@
     </svg>
     <div>
       <h1>SkyBlink</h1>
+      <p class="tagline">Blink the infrared sky. Spot what moves. Read its spectrum.</p>
     </div>
   </div>
   <form id="searchForm" class="search" autocomplete="off">
@@ -71,12 +72,11 @@
       <span aria-hidden="true">–</span>
       <input id="dTo" type="date" min="1997-01-01" aria-label="To date">
     </label>
-    <button type="button" id="clearDates">Clear dates</button>
     <button type="submit" class="primary">Load</button>
   </form>
   <div class="examples">
     <strong>Example targets</strong>
-    <div class="demos" id="demos" aria-label="Example targets"></div>
+    <div class="demos" id="demos" aria-label="Demo targets"></div>
   </div>
   <div class="demos" id="candidates" hidden></div>
 </header>
@@ -118,14 +118,15 @@
         <button id="playBtn" title="Play / pause (Space)">⏸</button>
         <button id="prevBtn" title="Previous epoch (←)">◀</button>
         <button id="nextBtn" title="Next epoch (→)">▶</button>
-        <label>Interval <input id="speed" type="number" min="150" max="1500" step="any" value="600"> ms</label>
-        <label>Zoom <input id="zoom" type="number" min="1" max="4" step="any" value="1"> ×</label>
-        <button id="resetView" type="button">Reset view</button>
+        <label>Speed <input id="speed" type="range" min="150" max="1500" step="50" value="600"></label>
+        <label>Zoom <input id="zoom" type="range" min="1" max="4" step="0.25" value="1"></label>
       </div>
       <div class="group modes" role="radiogroup" aria-label="Display mode">
         <button data-mode="blink" class="mode on" title="Blink (B)">Blink</button>
-        <button data-mode="diff" class="mode" title="Compare each SPHEREx visit with the median of the other SPHEREx visits (D)">Difference</button>
-        <details class="inline-help"><summary aria-label="About difference mode">ⓘ</summary><p>Each SPHEREx visit is compared with the median of the other SPHEREx visits. Archival frames are compared with the SPHEREx median and come from different telescopes.</p></details>
+        <button data-mode="diff" class="mode" title="Difference: each epoch minus the median of the others (D)">Difference</button>
+        <button data-mode="color" class="mode" title="False colour: blue=D1+D2, green=D3+D4, red=D5+D6 (C)">Colour</button>
+        <button data-mode="cdiff" class="mode" title="Colour difference: long (D5+D6) minus 3.3 µm methane band (D4) – brown dwarfs pop out">D6−D4</button>
+        <button data-mode="stack" class="mode" title="Stack: median of all visits. In Solar System object mode this is shift-and-add: the object adds up while background stars blur out (S)">Stack</button>
         <button data-mode="track" class="mode" title="Parallax tracker: shift the single images of each visit along the path of a distant body and stack them, so a slow mover (e.g. a planet far beyond Neptune) adds up instead of being removed by the median (T)">Track</button>
       </div>
       <div class="group tracker" id="tracker" hidden>
@@ -135,35 +136,21 @@
         <label title="Extra on-sky motion towards north, arcsec/day">+ north <input id="trkVn" type="number" step="0.1" value="0" class="num">″/day</label>
         <span class="muted small" id="trkNote"></span>
       </div>
-      <div class="group"><span>Detector groups</span><details class="inline-help"><summary aria-label="About detector groups">ⓘ</summary><p>Choose SPHEREx detector groups by their approximate wavelength ranges. These are not individual selections of all 102 spectral bands.</p></details></div>
       <div class="group dets" id="dets" aria-label="Detectors"></div>
-      <div class="group"><label class="chk"><input id="detectorOverlay" type="checkbox" checked> Colour detector overlay (Blink)</label><details class="inline-help"><summary aria-label="About detector colour overlay">ⓘ</summary><p>Selected detector groups are shown as translucent false colours. Colours are illustrative, not natural colours; brightness is scaled for display. Not all groups are available in every visit.</p></details></div>
-      <details class="advanced">
-        <summary>Advanced options</summary>
-        <div class="advanced-content">
-      <div class="group modes" role="group" aria-label="Advanced display modes">
-        <button data-mode="color" class="mode" title="Representative colours, not natural colours">False colour</button>
-        <button data-mode="cdiff" class="mode" title="Compare D5+D6 with D4">D5+D6 vs D4</button>
-        <button data-mode="stack" class="mode" id="stackMode">Combine visits</button>
-        <details class="inline-help"><summary aria-label="About advanced display modes">ⓘ</summary><p>False colour assigns detector groups to display colours, not natural colours. D5+D6 vs D4 may highlight cold sources but does not establish an object's identity. Combine visits uses a median; for a Solar System object, Align &amp; stack aligns frames on its predicted position.</p></details>
-      </div>
-      <div class="group">
+      <div class="group advanced">
         <label>Black <input id="lo" type="range" min="0" max="50" step="0.5" value="2"></label>
         <label>White <input id="hi" type="range" min="90" max="100" step="0.1" value="99.5"></label>
         <label>Asinh <input id="asinh" type="range" min="0" max="30" step="1" value="8"></label>
         <label class="chk"><input id="invert" type="checkbox" checked> Invert</label>
-        <details class="inline-help"><summary aria-label="About brightness">ⓘ</summary><p>Black and White set the brightness range (percentiles); Asinh compresses bright stars so faint sources stay visible.</p></details>
       </div>
-      <div class="group">
-        <label class="chk"><input id="ovArch" type="checkbox" checked> Add archival images</label><details class="inline-help"><summary aria-label="About archival images">ⓘ</summary><p>2MASS and WISE images come from different telescopes and bands. They are useful for comparing positions over time, but brightness should not be compared directly.</p></details>
+      <div class="group advanced">
+        <label class="chk" title="Add archival 2MASS (1997–2001) and WISE (2010) images of the same field as extra frames in Blink and Difference modes"><input id="ovArch" type="checkbox" checked> 2MASS + WISE frames (1998–2010)</label>
         <label class="chk"><input id="ovTarget" type="checkbox" checked> Target track</label>
         <label class="chk"><input id="ovGaia" type="checkbox"> Gaia DR3</label>
         <label class="chk"><input id="ovAst" type="checkbox"> Known asteroids</label>
-        <label class="chk"><input id="ovBorder" type="checkbox" checked> Mark first visit</label>
-        <label class="chk"><input id="ovCand" type="checkbox" checked> Highlight possible changes</label><details class="inline-help"><summary aria-label="About possible changes">ⓘ</summary><p>Boxes flag possible motion, variability or artifacts. They are hints, not confirmed discoveries; inspect them carefully.</p></details>
+        <label class="chk"><input id="ovBorder" type="checkbox" checked> Mark first epoch</label>
+        <label class="chk" title="Boxes mark automatic detections on the difference images: movers (dipoles), variables, and sources seen in one visit only"><input id="ovCand" type="checkbox" checked> Auto-detect candidates</label>
       </div>
-        </div>
-      </details>
       <div class="group share">
         <button id="saveCand" title="Save the clicked position (or the target) to your candidate list">★ Save as candidate</button>
         <button id="copyLink" title="Link to exactly this view">Copy link</button>
@@ -171,7 +158,7 @@
         <input id="shareBox" type="text" readonly hidden aria-label="Text to copy">
       </div>
     </div>
-    <details class="advanced resources"><summary>External resources</summary><div class="links" id="links"></div></details>
+    <div class="links" id="links"></div>
     <a id="openFull" class="open-full" target="_blank" rel="noopener" href="./">Open in SPHEREx Time Machine ↗</a>
   </section>
 
@@ -193,8 +180,8 @@
       <button id="pickLoad" class="primary small">Load SPHEREx images here</button>
       <a id="pickSimbad" target="_blank" rel="noopener">Look it up on SIMBAD ↗</a>
     </div>
-    <p class="muted small">Drag to explore, scroll to zoom, and click a point to select it and load its SPHEREx images.</p>
-    <p class="muted small" id="contextNote">Click any point on the sky and load its SPHEREx images; the blue square marks the loaded field.</p>
+    <p class="muted small">Drag to pan, scroll to zoom. <b>Click any point to select it</b>, then load its SPHEREx images in the viewer above.</p>
+    <p class="muted small" id="contextNote">Explore the whole sky: click any point and load its SPHEREx images. Once a field is loaded, a blue square marks it here and an orange track shows a fast-moving target over the decades. Powered by Aladin Lite (CDS, Strasbourg).</p>
   </section>
 
   <aside class="side">
@@ -204,12 +191,12 @@
         <button id="specReset" class="ghost small" hidden>Back to target</button>
       </div>
       <div id="specPlot" class="plot"></div>
-      <p class="muted small">Brightness by wavelength. For sky positions, click the image to inspect a point. Grey outlines mark flagged measurements. Quick-look only; use the <a href="https://irsa.ipac.caltech.edu/applications/spherex/" target="_blank" rel="noopener">IRSA tool</a> for research-grade spectra.</p>
+      <p class="muted small">Click anywhere on the image to measure the spectrum there. Colours = visit date; hollow grey = flagged pixels. Quick-look forced photometry with the SPHEREx PSF, deblended from Gaia DR3 neighbours; for research-grade spectra use the <a href="https://irsa.ipac.caltech.edu/applications/spherex/" target="_blank" rel="noopener">IRSA Spectrophotometry Tool</a>.</p>
     </section>
     <section class="card">
       <h3>Light curve</h3>
       <div id="lcPlot" class="plot small-plot"></div>
-      <p class="muted small">Brightness over time, normalised per detector. If no source is detected, raw flux is shown in mJy. For sky positions, click the image to inspect another point.</p>
+      <p class="muted small">Median flux per visit and detector, normalised per detector. Variable stars change; moving objects stay flat. If no source is detected at the position, the raw fluxes (mJy, around zero) are shown instead. Click any star in the image to see its own light curve.</p>
     </section>
     <section class="card">
       <div class="card-head">
@@ -226,24 +213,21 @@
     <section class="card">
       <h3>How to spot a mover</h3>
       <ul class="small tips">
-        <li><b>Blink:</b> Look for a point that changes position between visits.</li>
-        <li><b>Difference:</b> A moving source may appear as a light/dark pair.</li>
-        <li><b>Boxes:</b> Highlight possible changes, not confirmed discoveries.</li>
-        <li><b>Check:</b> Artifacts and missing Gaia matches need further investigation.</li>
-        <li><b>Save:</b> Click a source and choose “Save as candidate” to keep it in this browser.</li>
+        <li><b>Blink:</b> stars stay put; a dot that hops between epochs is moving.</li>
+        <li><b>Difference:</b> static stars vanish; a mover leaves a <i>dipole</i> (dark/bright pair).</li>
+        <li><b>Boxes:</b> automatic detections – pink <i>mover?</i> (dipole), blue <i>variable?</i>, yellow <i>one visit only</i> (asteroid, transient or artifact: check the asteroid overlay). They are hints, not discoveries – always look yourself. Click a source and press “Save as candidate” to keep it (yellow ★ square).</li>
+        <li><b>D6−D4:</b> cold brown dwarfs are bright at 4.5 µm but dark in the 3.3 µm methane band.</li>
+        <li><b>No Gaia match?</b> A moving source invisible to Gaia is too cold for optical light – exactly how volunteers find brown dwarfs.</li>
+        <li><b>Beware artifacts:</b> ghosts and cosmic rays appear in one frame only, or move with the detector instead of the sky.</li>
       </ul>
     </section>
   </aside>
 </main>
 
 <footer class="foot">
-  <p>SPHEREx data via NASA/IPAC IRSA · Not an official NASA product.</p>
-  <details><summary>Data sources &amp; credits</summary>
   <p>Data: NASA SPHEREx via NASA/IPAC Infrared Science Archive (IRSA). This tool makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. DOIs: 10.26131/IRSA678 (DR1), 10.26131/IRSA662 (QR3).</p>
   <p>This research has made use of the NASA/IPAC Infrared Science Archive, ESA Gaia DR3 (Gaia Collaboration 2023), the JPL Small-Body Identification API, CDS Sesame, and the Canadian Astronomy Data Centre (operated by the National Research Council of Canada with the support of the Canadian Space Agency). Built for the NASA Space Apps Challenge 2026. Not an official NASA product.</p>
-  <p>Sky context powered by Aladin Lite (CDS, Strasbourg).</p>
-  </details>
-  <details><summary>Keyboard shortcuts</summary><p class="muted">Space play/pause · ← → step · B blink · D difference · C colour · T track · I invert · + − zoom</p></details>
+  <p class="muted">Keyboard: Space play/pause · ← → step · B blink · D difference · C colour · T track · I invert · + − zoom</p>
 </footer>
 </div>
 </body>

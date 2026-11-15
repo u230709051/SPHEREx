@@ -60,3 +60,9 @@ body:has(#skyblink-opening:not([hidden])) { overflow: hidden; }
   #skyblink-opening, #skyblink-opening .landing-menu { transition: none; }
   #skyblink-opening::before, #skyblink-opening.departing::before { animation: none; }
 }
+
+/* Charts and text panels need a calm, solid background to stay readable over the nebula. */
+#team-view .side > .card {
+  background: #0b1222; box-shadow: 0 0 0 1px #1d2840, 0 8px 28px #0007;
+}
+#team-view .context.card { background: #0b1222e6; }
