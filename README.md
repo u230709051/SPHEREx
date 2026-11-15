@@ -91,7 +91,9 @@ This is not an official NASA product and does not imply endorsement by NASA, JPL
 
 As required by the NASA Space Apps rules, we disclose that an AI coding assistant (Claude, by Anthropic) was used during the hackathon to help survey the challenge resources and to draft parts of the code (backend pipeline, API server and frontend). Files containing AI-assisted code say so in their header comment. The team chose the challenge, made the design decisions, and reviewed, tested and is responsible for all code and results.
 
-Project demo video: it was recorded from the live website by a script and edited with the help of the same AI coding assistant. Its English voice-over is AI-generated speech (Kokoro, an open-source text-to-speech model, run locally), and the video carries a visible watermark saying so. All screens in the video are real captures of SkyBlink. No other AI-generated images, audio or video are used.
+Project demo video: it was recorded from the live website by a script and edited with the help of the same AI coding assistant. Its English voice-over is AI-generated speech (Kokoro, an open-source text-to-speech model, run locally), and the video carries a visible watermark saying so. All screens in the video are real captures of SkyBlink.
+
+The two background images of the website (the nebula behind the page and the opening screen) are AI-generated; the site shows a visible "Background images: AI-generated" notice. No other AI-generated images, audio or video are used.
 
 ## License
 
