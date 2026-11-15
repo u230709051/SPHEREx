@@ -91,11 +91,16 @@ def _run(job_id: str, params: dict, fn=None):
 @app.on_event("startup")
 def warm_demo_fields():
     """After a (re)start the server has no images on disk: load the stored demo fields' images and
-    Gaia neighbours in the background, one after the other, so clicking a star in them is quick."""
-    for f in sorted(pl.RESULTS_DIR.glob("*.json")):
-        if f.name.startswith(("arch_", "mv_", "gaia_")):
-            continue
-        pl.prefetch_cutouts(f.stem)
+    Gaia neighbours in the background, one after the other, so clicking a star in them is quick.
+    Starts 90 s after start-up, once the new instance has passed Render's health checks."""
+    def start():
+        for f in sorted(pl.RESULTS_DIR.glob("*.json")):
+            if f.name.startswith(("arch_", "mv_", "gaia_")):
+                continue
+            pl.prefetch_cutouts(f.stem)
+    t = threading.Timer(90, start)
+    t.daemon = True
+    t.start()
 
 
 @app.get("/api/targets")

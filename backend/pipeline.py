@@ -52,7 +52,7 @@ _INFLIGHT: dict = {}                       # key -> threading.Event while its cu
 _PREFETCH = ThreadPoolExecutor(max_workers=1)
 
 
-def cutouts_for(key: str, params: dict) -> list[sx.Cutout]:
+def cutouts_for(key: str, params: dict, workers: int = 8) -> list[sx.Cutout]:
     """Cutouts of a finished job: from memory, else re-read (disk cache, or the cloud after a restart).
     Images are fetched in parallel, and concurrent callers for the same field wait for one load."""
     with _LRU_LOCK:
@@ -77,7 +77,7 @@ def cutouts_for(key: str, params: dict) -> list[sx.Cutout]:
             path = sx.fetch_cutout(sx.cutout_url(rec, ra0, dec0, size))
             return sx.load_cutout(rec, path) if path else None
 
-        with ThreadPoolExecutor(max_workers=16) as pool:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             cutouts = [c for c in pool.map(load, res["images"]) if c is not None]
         if cutouts:
             _remember(key, cutouts)
@@ -95,7 +95,9 @@ def prefetch_cutouts(key: str):
         if key in _CUTOUT_LRU or key in _INFLIGHT:
             return
     def warm():
-        cutouts_for(key, {})
+        # background: only 3 threads, so the server keeps answering requests and Render's health check
+        # (on 0.5 CPU, 16 busy threads starved the web thread for >5 s and Render restarted the app)
+        cutouts_for(key, {}, workers=3)
         res = cached_result(key)
         if res:
             gaia_neighbors(key, res["grid"]["crval"][0], res["grid"]["crval"][1], res["fov_arcmin"], res["epochs"])
