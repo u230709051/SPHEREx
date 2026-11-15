@@ -809,8 +809,14 @@ function closeObjectCard() {
   S.objectCloseTimer = setTimeout(() => { card.hidden = true; }, 230);
   S.selectedObject = null;
 }
+function setObjectCardCompact(compact) {   // compact strip under the image; "Details" shows the full text
+  $("objectCard").classList.toggle("compact", compact);
+  $("objectCardMore").textContent = compact ? "Details ▾" : "Less ▴";
+  $("objectCardMore").setAttribute("aria-expanded", String(!compact));
+}
 function openObjectCard() {
   const card = $("objectCard");
+  setObjectCardCompact(true);
   clearTimeout(S.objectCloseTimer); card.hidden = false;
   requestAnimationFrame(() => card.classList.add("open"));
 }
@@ -1495,6 +1501,7 @@ async function main() {
   document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => { setQmode(b.dataset.q); $("q").focus(); }));
   document.addEventListener("click", (ev) => { if ($("datesPop").open && !$("datesPop").contains(ev.target)) $("datesPop").open = false; });
   $("aboutBtn").onclick = () => $("aboutDlg").showModal();
+  $("objectCardMore").onclick = () => setObjectCardCompact(!$("objectCard").classList.contains("compact"));
   // "where discoveries are reported" (team's discovery card): the list under the heading opens and closes (closed at first)
   const showReportBody = (open) => { $("reportBody").hidden = !open; $("reportToggle").setAttribute("aria-expanded", String(open)); };
   $("reportToggle").onclick = () => showReportBody($("reportBody").hidden);

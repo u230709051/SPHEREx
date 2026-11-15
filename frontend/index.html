@@ -117,6 +117,33 @@
     </div>
 
     <div class="timeline" id="timeline" aria-label="Epochs"></div>
+    <!-- clicked-object information: inside the page, right under the image, so it never covers the charts -->
+    <aside id="objectCard" class="object-card" hidden role="region" aria-live="polite" aria-labelledby="objectCardName">
+      <button id="objectCardClose" class="object-card-close" type="button" aria-label="Close object information">×</button>
+      <div class="object-card-content">
+        <p id="objectCardStatus" class="object-card-status">Catalogue match</p>
+        <h3 id="objectCardName">Selected object</h3>
+        <p id="objectCardType" class="object-card-type"></p>
+        <button id="objectCardMore" class="object-card-more" type="button" aria-expanded="false" aria-controls="objectCard">Details ▾</button>
+        <p id="objectCardDescription" class="object-card-description"></p>
+        <div class="object-card-highlight" id="objectCardFactBox" hidden>
+          <span>Interesting fact</span><p id="objectCardFact"></p>
+        </div>
+        <div class="object-card-story" id="objectCardStoryBox" hidden>
+          <span>History or story</span><p id="objectCardStory"></p>
+        </div>
+        <details class="object-card-section">
+          <summary>Scientific properties</summary><dl id="objectCardDetails" class="object-card-details"></dl>
+        </details>
+        <details class="object-card-section">
+          <summary>SPHEREx connection</summary>
+          <p id="objectCardSpherex" class="object-card-section-text"></p>
+          <div id="objectCardSpherexMeta" class="object-card-meta"></div>
+        </details>
+        <p id="objectCardNote" class="muted small object-card-note"></p>
+        <div id="objectCardLinks" class="object-card-links" hidden></div>   <!-- external links removed by the team -->
+      </div>
+    </aside>
     <p class="small range-note" id="rangeNote" hidden></p>
     <p class="muted small time-note">SPHEREx began its survey in May 2025, so its own visits span 2025–2026 (new data arrive weekly). To stretch the time baseline to ~25 years, archival 2MASS (~2000) and WISE (2010) images of the same field are added as extra frames; see also the 1950s–1990s plates in “Sky context &amp; long-term motion” below.<span id="indexNote"></span></p>
 
@@ -260,32 +287,6 @@
       </div>
     </section>
 </main>
-
-<aside id="objectCard" class="object-card" hidden role="dialog" aria-live="polite" aria-labelledby="objectCardName">
-  <button id="objectCardClose" class="object-card-close" type="button" aria-label="Close object information">×</button>
-  <div class="object-card-content">
-    <p id="objectCardStatus" class="object-card-status">Catalogue match</p>
-    <h3 id="objectCardName">Selected object</h3>
-    <p id="objectCardType" class="object-card-type"></p>
-    <p id="objectCardDescription" class="object-card-description"></p>
-    <div class="object-card-highlight" id="objectCardFactBox" hidden>
-      <span>Interesting fact</span><p id="objectCardFact"></p>
-    </div>
-    <div class="object-card-story" id="objectCardStoryBox" hidden>
-      <span>History or story</span><p id="objectCardStory"></p>
-    </div>
-    <details class="object-card-section">
-      <summary>Scientific properties</summary><dl id="objectCardDetails" class="object-card-details"></dl>
-    </details>
-    <details class="object-card-section">
-      <summary>SPHEREx connection</summary>
-      <p id="objectCardSpherex" class="object-card-section-text"></p>
-      <div id="objectCardSpherexMeta" class="object-card-meta"></div>
-    </details>
-    <p id="objectCardNote" class="muted small object-card-note"></p>
-    <div id="objectCardLinks" class="object-card-links" hidden></div>   <!-- external links removed by the team -->
-  </div>
-</aside>
 
 <footer class="foot">
   <p>Data: NASA SPHEREx via NASA/IPAC Infrared Science Archive (IRSA). This tool makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. DOIs: 10.26131/IRSA678 (DR1), 10.26131/IRSA662 (QR3).</p>

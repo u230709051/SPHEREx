@@ -69,12 +69,14 @@ h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
 /* target tooltip: what the target is, shown at once on hover or keyboard focus */
 .demos button[data-tip] { position: relative; }
 .demos button[data-tip]::after {
-  content: attr(data-kind) " — " attr(data-tip); position: absolute; left: 0; top: calc(100% + 8px); z-index: 80;
+  position: absolute; left: 0; top: calc(100% + 8px); z-index: 80;
   width: max-content; max-width: 280px; padding: 8px 10px; border-radius: 8px; white-space: normal; text-align: left;
   font-size: 12px; line-height: 1.45; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
   box-shadow: 0 8px 24px #000a; opacity: 0; transform: translateY(-3px); pointer-events: none; transition: opacity .12s, transform .12s;
 }
-.demos button[data-tip]:hover::after, .demos button[data-tip]:focus-visible::after { opacity: 1; transform: none; }
+/* the tooltip box exists only while hovered/focused: an invisible one would still widen the page on phones */
+.demos button[data-tip]:hover::after, .demos button[data-tip]:focus-visible::after {
+  content: attr(data-kind) " — " attr(data-tip); opacity: 1; transform: none; }
 .demos button[data-tip]:last-child::after { left: auto; right: 0; }
 dialog.about { max-width: 560px; width: calc(100% - 32px); background: var(--panel); color: var(--text); border: 1px solid var(--line);
   border-radius: 12px; padding: 20px 22px; line-height: 1.55; }
@@ -293,3 +295,21 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
   .object-card { top: auto; right: 10px; bottom: 10px; left: 10px; width: auto; max-height: min(66vh, 520px); transform: translateY(calc(100% + 24px)); }
   .object-card.open { transform: translateY(0); }
 }
+
+/* Clicked-object information inside the viewer, right under the image (it no longer floats over the
+   charts). Compact by default: name, type and the first line of the description; "Details" opens the rest. */
+.viewer .object-card {
+  position: relative; inset: auto; width: auto; max-height: none; overflow: visible; margin: 8px 0 4px;
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: none;
+  border-radius: 12px; box-shadow: none; backdrop-filter: none; background: #0b1222; border: 1px solid rgba(91, 153, 255, .35);
+}
+.viewer .object-card.open { transform: none; }
+.viewer .object-card .object-card-content { padding: 10px 46px 10px 12px; }
+.viewer .object-card .object-card-close { top: 8px; right: 8px; width: 26px; height: 26px; font-size: 18px; }
+.viewer .object-card h3 { display: inline; margin: 0 8px 0 0; font-size: 16px; }
+.viewer .object-card .object-card-type { display: inline; margin: 0 8px 0 0; }
+.object-card-more { font-size: 12px; padding: 2px 9px; border-radius: 999px; color: var(--accent); background: transparent; vertical-align: 2px; }
+.viewer .object-card .object-card-description { margin: 6px 0 0; }
+.viewer .object-card.compact .object-card-description { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.viewer .object-card.compact .object-card-highlight, .viewer .object-card.compact .object-card-story,
+.viewer .object-card.compact .object-card-section, .viewer .object-card.compact .object-card-note { display: none; }
