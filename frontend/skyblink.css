@@ -72,3 +72,10 @@ body:has(#skyblink-opening:not([hidden])) { overflow: hidden; }
 #team-view .context.card { background: var(--panel); border: 1px solid var(--line); box-shadow: none; }
 #team-view .layout > #reportCard { background: #0b1222; box-shadow: 0 0 0 1px #1d2840, 0 8px 28px #0007; }
 
+
+/* Visible notice required by the NASA Space Apps rules: the nebula/opening backgrounds are AI-generated. */
+.si-mark {
+  position: fixed; right: 14px; bottom: 10px; z-index: 2147483000; margin: 0; pointer-events: none;
+  font: 500 11px/1.4 system-ui, sans-serif; letter-spacing: .02em; color: rgba(232, 236, 255, .6);
+  padding: 1px 7px; border-radius: 999px; background: rgba(6, 9, 20, .6);   /* stays readable over page text when scrolling */
+}
