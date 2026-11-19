@@ -24,7 +24,7 @@ from contextlib import contextmanager
 SLOTS = int(os.environ.get("HEAVY_SLOTS", "2"))
 SOFT_MB = float(os.environ.get("MEM_SOFT_MB", "360"))     # above this: drop cached images first
 HARD_MB = float(os.environ.get("MEM_HARD_MB", "440"))     # still above this: answer "busy"
-MAX_JOBS = int(os.environ.get("MAX_QUEUED_JOBS", "6"))   # new-field jobs running + waiting
+MAX_JOBS = int(os.environ.get("MAX_QUEUED_JOBS", "50"))  # safety cap only (queued jobs use almost no memory)
 
 _cv = threading.Condition()
 _active = 0

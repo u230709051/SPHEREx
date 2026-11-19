@@ -98,7 +98,7 @@ def _run(job_id: str, params: dict, fn=None):
                     res = fn(params, progress) if fn else pl.run_frames_job(params, progress, publish)
                 break
             except guard.Busy:
-                _set(job_id, message="The server is busy; your field will start in a moment…")
+                _set(job_id, message="Preparing your field…")
                 time.sleep(5)
         else:
             raise RuntimeError("The server stayed busy for too long. Please try again in a few minutes.")
@@ -123,8 +123,7 @@ def _check_queue():
     with JOBS_LOCK:
         n = sum(1 for j in JOBS.values() if j.get("status") == "running")
     if n >= guard.MAX_JOBS:
-        raise guard.Busy(f"{n} new fields are being loaded right now. Your request will start in a moment…",
-                         retry_after=10)
+        raise guard.Busy("Preparing your field…", retry_after=10)
 
 
 @app.get("/api/health")
@@ -225,17 +224,7 @@ def job(job_id: str):
         j = JOBS.get(job_id)
         if not j:
             raise HTTPException(404, "Unknown job")
-        out = {k: v for k, v in j.items() if k not in ("params", "partial")}
-        if j.get("stage") == "queued":
-            ahead = 0
-            for k, other in JOBS.items():
-                if k == job_id:
-                    break
-                ahead += other.get("status") == "running"
-            if ahead:
-                out["message"] = f"Waiting for {ahead} other field{'s' if ahead > 1 else ''} to finish loading…"
-                out["queue_ahead"] = ahead
-        return out
+        return {k: v for k, v in j.items() if k not in ("params", "partial")}
 
 
 @app.get("/api/jobs/{job_id}/partial")
