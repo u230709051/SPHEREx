@@ -313,3 +313,11 @@ body.embed .layout { grid-template-columns: 1fr; padding: 8px; }
 .viewer .object-card.compact .object-card-description { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .viewer .object-card.compact .object-card-highlight, .viewer .object-card.compact .object-card-story,
 .viewer .object-card.compact .object-card-section, .viewer .object-card.compact .object-card-note { display: none; }
+
+/* Shown while the server asks the page to wait (many visitors at once); the request is retried automatically. */
+.busy-notice {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 2147483001;
+  max-width: calc(100vw - 32px); padding: 9px 16px; border-radius: 10px;
+  background: #1b2340; color: #e8ecff; border: 1px solid #7db4ff;
+  font: 500 14px/1.4 system-ui, sans-serif; box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}

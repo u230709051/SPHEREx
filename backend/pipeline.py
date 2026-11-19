@@ -52,7 +52,16 @@ _INFLIGHT: dict = {}                       # key -> threading.Event while its cu
 _PREFETCH = ThreadPoolExecutor(max_workers=1)
 
 
-def cutouts_for(key: str, params: dict, workers: int = 8) -> list[sx.Cutout]:
+def evict_oldest_cutouts() -> bool:
+    """Drop the least recently used field's images from memory (False when none are cached)."""
+    with _LRU_LOCK:
+        if not _CUTOUT_LRU:
+            return False
+        _CUTOUT_LRU.popitem(last=False)
+        return True
+
+
+def cutouts_for(key: str, params: dict, workers: int = 6) -> list[sx.Cutout]:
     """Cutouts of a finished job: from memory, else re-read (disk cache, or the cloud after a restart).
     Images are fetched in parallel, and concurrent callers for the same field wait for one load."""
     with _LRU_LOCK:
@@ -96,8 +105,14 @@ def prefetch_cutouts(key: str):
             return
     def warm():
         # background: only 3 threads, so the server keeps answering requests and Render's health check
-        # (on 0.5 CPU, 16 busy threads starved the web thread for >5 s and Render restarted the app)
-        cutouts_for(key, {}, workers=3)
+        # (on 0.5 CPU, 16 busy threads starved the web thread for >5 s and Render restarted the app).
+        # It also waits until no visitor's request is running or waiting, and gives up after 10 min.
+        import guard
+        try:
+            with guard.heavy(wait=600, background=True):
+                cutouts_for(key, {}, workers=3)
+        except guard.Busy:
+            return
         res = cached_result(key)
         if res:
             gaia_neighbors(key, res["grid"]["crval"][0], res["grid"]["crval"][1], res["fov_arcmin"], res["epochs"])

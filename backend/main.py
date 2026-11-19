@@ -9,23 +9,32 @@ Parts of this file were written with the assistance of an AI coding assistant
 from __future__ import annotations
 
 import threading
+import time
 import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import catalogs as cat
+import guard
 import moving as mv
 import pipeline as pl
 import spherex_core as sx
 
 app = FastAPI(title="SPHEREx Time Machine API")
 app.add_middleware(GZipMiddleware, minimum_size=2000)
+
+
+@app.exception_handler(guard.Busy)
+async def busy_handler(request: Request, err: guard.Busy):
+    """Server at its limit: ask the page to retry shortly instead of running out of memory."""
+    return JSONResponse({"detail": str(err), "busy": True}, status_code=503,
+                        headers={"Retry-After": str(err.retry_after), "X-Busy": "1"})
 
 
 @app.middleware("http")
@@ -43,30 +52,6 @@ MAX_JOBS_KEPT = 40
 # One field at a time: the Render instance has 512 MB, and two jobs with full-size images in memory
 # at once pushed it over the limit (Render restarted the app, 502). A second request waits its turn.
 EXECUTOR = ThreadPoolExecutor(max_workers=1)
-
-
-def _limit_malloc():
-    """glibc gives every thread its own memory arena (up to 8 x CPUs); with our download threads that
-    adds 100+ MB of unused heap. Two arenas are plenty. Linux only; elsewhere this does nothing."""
-    try:
-        import ctypes
-        libc = ctypes.CDLL("libc.so.6")
-        libc.mallopt(-8, 2)            # M_ARENA_MAX = 2
-        return libc
-    except (OSError, AttributeError):
-        return None
-
-
-_LIBC = _limit_malloc()
-
-
-def _release_memory():
-    """Give freed memory back to the system after a job (glibc keeps it otherwise)."""
-    if _LIBC is not None:
-        try:
-            _LIBC.malloc_trim(0)
-        except AttributeError:
-            pass
 
 
 class FramesRequest(BaseModel):
@@ -106,7 +91,17 @@ def _run(job_id: str, params: dict, fn=None):
             JOBS[job_id]["partial"] = partial
             JOBS[job_id]["partial_n"] = JOBS[job_id].get("partial_n", 0) + 1
     try:
-        res = fn(params, progress) if fn else pl.run_frames_job(params, progress, publish)
+        for attempt in range(120):            # memory stays high (other work): wait and try again, up to ~10 min
+            try:
+                with guard.heavy(wait=None):       # waits while images of other fields are being loaded
+                    _set(job_id, stage="start", message="Starting…")
+                    res = fn(params, progress) if fn else pl.run_frames_job(params, progress, publish)
+                break
+            except guard.Busy:
+                _set(job_id, message="The server is busy; your field will start in a moment…")
+                time.sleep(5)
+        else:
+            raise RuntimeError("The server stayed busy for too long. Please try again in a few minutes.")
         _set(job_id, status="done", result_key=res["key"], message="Done")
     except mv.AmbiguousName as err:
         _set(job_id, status="error", message=str(err), candidates=err.candidates)
@@ -120,7 +115,29 @@ def _run(job_id: str, params: dict, fn=None):
             done = [k for k, j in JOBS.items() if j.get("status") != "running"]
             for k in done[:-MAX_JOBS_KEPT]:         # forget old finished jobs (dicts keep insertion order)
                 JOBS.pop(k, None)
-        _release_memory()
+        guard.release_memory()
+
+
+def _check_queue():
+    """Refuse a new job (the page retries) when too many new fields are already waiting."""
+    with JOBS_LOCK:
+        n = sum(1 for j in JOBS.values() if j.get("status") == "running")
+    if n >= guard.MAX_JOBS:
+        raise guard.Busy(f"{n} new fields are being loaded right now. Your request will start in a moment…",
+                         retry_after=10)
+
+
+@app.get("/api/health")
+async def health():
+    """Light health check (answered on the event loop, no thread hand-off)."""
+    return {"ok": True}
+
+
+@app.get("/api/status")
+def server_status():
+    with JOBS_LOCK:
+        jobs = sum(1 for j in JOBS.values() if j.get("status") == "running")
+    return guard.status() | {"jobs": jobs}
 
 
 @app.on_event("startup")
@@ -139,7 +156,7 @@ def warm_demo_fields():
 
 
 @app.get("/api/targets")
-def targets():
+async def targets():
     return [{k: t[k] for k in ("id", "name", "ra", "dec", "pmra", "pmdec", "ref_epoch", "kind", "note",
                                 "description", "interesting_fact", "story", "sources") if k in t}
             for t in cat.TARGETS]
@@ -178,6 +195,7 @@ def frames(req: FramesRequest):
         k = pl.job_key(v)
         if v["max_per_cell"] >= params["max_per_cell"] and pl.cached_result(k):
             return {"status": "done", "result_key": k}
+    _check_queue()
     job_id = uuid.uuid4().hex[:12]
     with JOBS_LOCK:
         JOBS[job_id] = {"status": "running", "stage": "queued", "done": 0, "total": 1,
@@ -192,6 +210,7 @@ def moving(req: MovingRequest):
     key = "mv_" + pl.job_key(params)
     if pl.cached_result(key):
         return {"status": "done", "result_key": key}
+    _check_queue()
     job_id = uuid.uuid4().hex[:12]
     with JOBS_LOCK:
         JOBS[job_id] = {"status": "running", "stage": "queued", "done": 0, "total": 1,
@@ -206,7 +225,17 @@ def job(job_id: str):
         j = JOBS.get(job_id)
         if not j:
             raise HTTPException(404, "Unknown job")
-        return {k: v for k, v in j.items() if k not in ("params", "partial")}
+        out = {k: v for k, v in j.items() if k not in ("params", "partial")}
+        if j.get("stage") == "queued":
+            ahead = 0
+            for k, other in JOBS.items():
+                if k == job_id:
+                    break
+                ahead += other.get("status") == "running"
+            if ahead:
+                out["message"] = f"Waiting for {ahead} other field{'s' if ahead > 1 else ''} to finish loading…"
+                out["queue_ahead"] = ahead
+        return out
 
 
 @app.get("/api/jobs/{job_id}/partial")
@@ -234,12 +263,15 @@ def result(key: str):
 def spectrum(key: str, ra: float, dec: float):
     """Spectrum + light curve at any position inside an already loaded field."""
     res = pl.cached_result(key)
-    cutouts = pl.cutouts_for(key, {})
-    if not res or not cutouts:
+    if not res:
         raise HTTPException(404, "Field not loaded")
-    nbrs = pl.gaia_neighbors(key, res["grid"]["crval"][0], res["grid"]["crval"][1],
-                             res["fov_arcmin"], res["epochs"])
-    return pl.spectrum_and_lightcurve(cutouts, ra=ra, dec=dec, neighbors_by_epoch=nbrs, method="psf")
+    with guard.heavy():
+        cutouts = pl.cutouts_for(key, {})
+        if not cutouts:
+            raise HTTPException(404, "Field not loaded")
+        nbrs = pl.gaia_neighbors(key, res["grid"]["crval"][0], res["grid"]["crval"][1],
+                                 res["fov_arcmin"], res["epochs"])
+        return pl.spectrum_and_lightcurve(cutouts, ra=ra, dec=dec, neighbors_by_epoch=nbrs, method="psf")
 
 
 @app.get("/api/index")
@@ -253,7 +285,8 @@ def index_info():
 def track_images(key: str, epoch: int):
     """Single images of one visit with the Earth's position, for the parallax tracker."""
     import tracker
-    r = tracker.visit_images(key, epoch)
+    with guard.heavy():
+        r = tracker.visit_images(key, epoch)
     if r is None:
         raise HTTPException(404, "Field or visit not loaded")
     return JSONResponse(r)
@@ -265,7 +298,10 @@ def archival(key: str):
     import archival as ar
     if not pl.cached_result(key):
         raise HTTPException(404, "Field not loaded")
-    return ar.archival_frames(key)
+    if (pl.RESULTS_DIR / f"arch_{key}.json").exists():
+        return ar.archival_frames(key)          # stored: no heavy work
+    with guard.heavy():
+        return ar.archival_frames(key)
 
 
 @app.get("/api/gaia")

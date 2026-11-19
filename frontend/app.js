@@ -57,8 +57,28 @@ function parseCoords(text) {
   }
   return null;
 }
+function busyNotice(text) {             // small banner while the server asks us to wait (HTTP 503 "busy")
+  let el = document.getElementById("busyNotice");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "busyNotice"; el.className = "busy-notice"; el.setAttribute("role", "status");
+    document.body.appendChild(el);
+  }
+  el.textContent = text || "";
+  el.hidden = !text;
+}
+let busyCount = 0;
 async function api(path, opts) {
-  const r = await fetch(path, opts);
+  let r;
+  for (let attempt = 0; ; attempt++) {
+    r = await fetch(path, opts);
+    if (r.status !== 503 || !r.headers.get("X-Busy") || attempt >= 40) break;
+    // The server is at its limit (many visitors): wait as it asks, then try again by ourselves.
+    const d = (await r.json().catch(() => ({}))).detail;
+    busyCount++; busyNotice(d || "The server is busy right now. Retrying in a few seconds…");
+    await new Promise((res) => setTimeout(res, 1000 * Math.min(15, Number(r.headers.get("Retry-After")) || 4)));
+    busyCount--; if (!busyCount) busyNotice(null);
+  }
   if (!r.ok) {
     const d = (await r.json().catch(() => ({}))).detail;
     throw new Error(Array.isArray(d) ? d.map((x) => `${(x.loc || []).slice(-1)[0]}: ${x.msg}`).join("; ") : d || r.statusText);

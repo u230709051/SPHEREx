@@ -44,7 +44,7 @@ def visit_images(key: str, epoch: int) -> dict | None:
     else:   # only this visit's cutouts, in parallel (the whole field is not needed)
         recs = [sx.ImageRecord(uri=im["uri"], mjd=im["mjd"], det=im["det"], epoch=im["epoch"])
                 for im in res["images"] if im["epoch"] == epoch]
-        with ThreadPoolExecutor(max_workers=16) as pool:
+        with ThreadPoolExecutor(max_workers=6) as pool:   # 6, not 16: leave CPU for other visitors
             paths = list(pool.map(lambda r: sx.fetch_cutout(sx.cutout_url(r, ra0, dec0, size)), recs))
         cutouts = [c for c in (sx.load_cutout(r, p) for r, p in zip(recs, paths) if p) if c is not None]
     cutouts.sort(key=lambda c: c.rec.mjd)
